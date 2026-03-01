@@ -2,8 +2,15 @@ import { useState, useCallback } from "react";
 import { type Locale, type Messages, LOCALES, messages } from "./locales";
 
 const SESSION_KEY = "app_locale";
+const RESTRICTED_LOCALE_KEY = "is_restricted_region";
 
 function detectLocale(): Locale {
+  // Check if user is in restricted region (set by backend)
+  const isRestricted = sessionStorage.getItem(RESTRICTED_LOCALE_KEY) === "true";
+  if (isRestricted) {
+    return "en"; // Force English for restricted regions
+  }
+
   // 1. session preference
   const saved = sessionStorage.getItem(SESSION_KEY) as Locale | null;
   if (saved && messages[saved]) return saved;

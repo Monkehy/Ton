@@ -1,7 +1,7 @@
 import geoip from "geoip-lite";
 import type { FastifyRequest } from "fastify";
 
-const restrictedCountries = new Set(["CN", "US", "HK", "SG"]);
+const restrictedCountries = new Set(["CN", "US"]);
 
 function pickCountry(request: FastifyRequest): { country: string; reason: string } {
   const cfCountry = request.headers["cf-ipcountry"];

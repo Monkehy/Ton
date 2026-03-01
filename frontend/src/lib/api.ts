@@ -87,7 +87,16 @@ export async function fetchUserStatus(wallet = ""): Promise<UserStatus> {
     );
   }
   await checkRes(res, "获取用户状态", urlStr);
-  return JSON.parse(await res.text()) as Promise<UserStatus>;
+  const status = JSON.parse(await res.text()) as UserStatus;
+  
+  // Mark restricted region for locale detection
+  if (status.mode === "MODE_CLEAN") {
+    sessionStorage.setItem("is_restricted_region", "true");
+  } else {
+    sessionStorage.removeItem("is_restricted_region");
+  }
+  
+  return status;
 }
 
 export interface SubmitRoundParams {

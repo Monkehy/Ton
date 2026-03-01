@@ -24,6 +24,9 @@ export function EntryGate() {
   const [error, setError] = useState("");
   const [showLangMenu, setShowLangMenu] = useState(false);
 
+  // Hide language switcher in restricted regions
+  const isRestricted = status?.mode === "MODE_CLEAN";
+
   // Balance state lives here so header, lobby and profile stay in sync
   const [balanceTon, setBalanceTon] = useState(DEV_MOCK_WALLET ? "10.0000" : "0.0000");
   const [claimableTon, setClaimableTon] = useState("0.0000");
@@ -130,71 +133,73 @@ export function EntryGate() {
 
         {/* Right: balance + language switcher */}
         <div className="flex items-center gap-2">
-          {/* Language switcher */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowLangMenu((v) => !v)}
-              className="flex items-center gap-[4px] rounded-full px-[10px] py-[7px] text-[12px] font-medium"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-dim)", cursor: "pointer" }}
-            >
-              <span>{currentLocaleInfo.flag}</span>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.5, marginTop: 1 }}>
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
+          {/* Language switcher - hidden in restricted regions */}
+          {!isRestricted && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowLangMenu((v) => !v)}
+                className="flex items-center gap-[4px] rounded-full px-[10px] py-[7px] text-[12px] font-medium"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-dim)", cursor: "pointer" }}
+              >
+                <span>{currentLocaleInfo.flag}</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.5, marginTop: 1 }}>
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
 
-            {showLangMenu && (
-              <>
-                {/* Backdrop to close */}
-                <div
-                  className="fixed inset-0 z-[99]"
-                  onClick={() => setShowLangMenu(false)}
-                />
-                <div
-                  className="absolute right-0 top-[calc(100%+6px)] z-[100] flex flex-col rounded-2xl overflow-hidden py-1 min-w-[148px]"
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
-                >
-                  {locales.map((l) => (
-                    <button
-                      key={l.code}
-                      type="button"
-                      onClick={() => { 
-                        console.log("[Lang Menu] Clicked:", l.code, l.label);
-                        setLocale(l.code); 
-                        setShowLangMenu(false); 
-                      }}
-                      onMouseEnter={(e) => {
-                        if (locale !== l.code) {
-                          e.currentTarget.style.background = "rgba(99,102,241,0.06)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (locale !== l.code) {
-                          e.currentTarget.style.background = "transparent";
-                        }
-                      }}
-                      className="flex items-center gap-[10px] px-4 py-[10px] text-[13px] text-left"
-                      style={{
-                        background: locale === l.code ? "rgba(99,102,241,0.12)" : "transparent",
-                        color: locale === l.code ? "var(--accent-bright)" : "var(--text-dim)",
-                        cursor: "pointer",
-                        transition: "background 0.1s"
-                      }}
-                    >
-                      <span className="text-base leading-none">{l.flag}</span>
-                      <span>{l.label}</span>
-                      {locale === l.code && (
-                        <svg className="ml-auto" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+              {showLangMenu && (
+                <>
+                  {/* Backdrop to close */}
+                  <div
+                    className="fixed inset-0 z-[99]"
+                    onClick={() => setShowLangMenu(false)}
+                  />
+                  <div
+                    className="absolute right-0 top-[calc(100%+6px)] z-[100] flex flex-col rounded-2xl overflow-hidden py-1 min-w-[148px]"
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
+                  >
+                    {locales.map((l) => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => { 
+                          console.log("[Lang Menu] Clicked:", l.code, l.label);
+                          setLocale(l.code); 
+                          setShowLangMenu(false); 
+                        }}
+                        onMouseEnter={(e) => {
+                          if (locale !== l.code) {
+                            e.currentTarget.style.background = "rgba(99,102,241,0.06)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (locale !== l.code) {
+                            e.currentTarget.style.background = "transparent";
+                          }
+                        }}
+                        className="flex items-center gap-[10px] px-4 py-[10px] text-[13px] text-left"
+                        style={{
+                          background: locale === l.code ? "rgba(99,102,241,0.12)" : "transparent",
+                          color: locale === l.code ? "var(--accent-bright)" : "var(--text-dim)",
+                          cursor: "pointer",
+                          transition: "background 0.1s"
+                        }}
+                      >
+                        <span className="text-base leading-none">{l.flag}</span>
+                        <span>{l.label}</span>
+                        {locale === l.code && (
+                          <svg className="ml-auto" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Balance */}
           <div className="flex flex-col items-end">
