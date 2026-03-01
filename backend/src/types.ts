@@ -8,7 +8,8 @@ export interface UserStatus {
   maxAmountTon: string;
   balanceTon?: string;
   claimableTon?: string;
-  contractAddress?: string;
+  contractAddress?: string;      // DiceGameV2 address
+  depositVaultAddress?: string;  // DepositVault address (for deposit/withdraw)
   contract?: {
     paused: boolean;
     minAmountTon: string;

@@ -37,6 +37,7 @@ export async function userRoutes(app: FastifyInstance): Promise<void> {
         contractAddress: config.CHAIN_PROVIDER === "ton_testnet"
           ? (config.TON_TESTNET_CONTRACT_ADDRESS ?? undefined)
           : (config.TON_MAINNET_CONTRACT_ADDRESS ?? undefined),
+        depositVaultAddress: config.TON_DEPOSIT_VAULT_ADDRESS ?? undefined,
         contract: contractSnapshot
           ? {
               paused: contractSnapshot.paused,

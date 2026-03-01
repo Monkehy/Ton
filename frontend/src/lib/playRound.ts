@@ -1,10 +1,12 @@
 import { beginCell } from "@ton/core";
 
-// Op codes from DiceGame contract (must match Tact build)
-const OP_DEPOSIT = 1243991607;
-const OP_PLAY_ROUND = 2234641007;
-const OP_WITHDRAW_BALANCE = 3049108610;
-const OP_CLAIM = 2619342542;
+// ─── Op codes (from Tact ABI, multi-contract architecture) ───
+// DepositVault messages
+const OP_DEPOSIT         = 1243991607;  // Deposit {}
+const OP_WITHDRAW_REQUEST = 1488609783; // WithdrawRequest { amount: Int }
+
+// DiceGameV2 messages
+const OP_PLAY_ROUND = 2234641007; // PlayRound { direction, threshold, amount, clientNonce }
 
 function toBase64(u: Uint8Array): string {
   if (typeof Buffer !== "undefined") {
@@ -15,15 +17,18 @@ function toBase64(u: Uint8Array): string {
   return btoa(s);
 }
 
-/** Deposit: empty body with op only. Value = amount to deposit. */
+/**
+ * Deposit: send to DepositVault, value = amount to deposit.
+ * Empty body, op code only.
+ */
 export function buildDepositPayload(): string {
   const cell = beginCell().storeUint(OP_DEPOSIT, 32).endCell();
   return toBase64(cell.toBoc());
 }
 
 /**
- * PlayRound from balance: no attached value. amount = stake from balance.
- * direction: 0 = <=T, 1 = >=T; threshold: 2..5; amount in nanoton.
+ * PlayRound: send to DiceGameV2, no value attached (balance deducted inside contract).
+ * direction: 0 = <=T, 1 = >=T; threshold: 1-6; amount in nanoton.
  */
 export function buildPlayRoundPayload(
   direction: 0 | 1,
@@ -31,28 +36,27 @@ export function buildPlayRoundPayload(
   amountNano: bigint,
   clientNonce: number
 ): string {
-  const ref = beginCell().storeInt(BigInt(clientNonce), 257).endCell();
   const cell = beginCell()
     .storeUint(OP_PLAY_ROUND, 32)
     .storeInt(direction, 257)
     .storeInt(threshold, 257)
     .storeInt(amountNano, 257)
-    .storeRef(ref)
+    .storeInt(BigInt(clientNonce), 257)
     .endCell();
   return toBase64(cell.toBoc());
 }
 
-/** WithdrawBalance: withdraw unused deposit back to wallet. amount in nanoton. */
+/**
+ * WithdrawRequest: send to DepositVault to withdraw balance back to wallet.
+ * amount in nanoton.
+ */
 export function buildWithdrawBalancePayload(amountNano: bigint): string {
   const cell = beginCell()
-    .storeUint(OP_WITHDRAW_BALANCE, 32)
+    .storeUint(OP_WITHDRAW_REQUEST, 32)
     .storeInt(amountNano, 257)
     .endCell();
   return toBase64(cell.toBoc());
 }
 
-/** Claim: withdraw winnings/rebate. amount 0 = claim all. amount in nanoton. */
-export function buildClaimPayload(amountNano: bigint): string {
-  const cell = beginCell().storeUint(OP_CLAIM, 32).storeInt(amountNano, 257).endCell();
-  return toBase64(cell.toBoc());
-}
+// Kept for compatibility (alias)
+export const buildClaimPayload = buildWithdrawBalancePayload;

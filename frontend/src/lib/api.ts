@@ -8,7 +8,8 @@ export interface UserStatus {
   level: "BRONZE" | "SILVER" | "GOLD";
   balanceTon?: string;
   claimableTon?: string;
-  contractAddress?: string;
+  contractAddress?: string;      // DiceGameV2
+  depositVaultAddress?: string;  // DepositVault
   contract?: {
     paused: boolean;
     minAmountTon: string;

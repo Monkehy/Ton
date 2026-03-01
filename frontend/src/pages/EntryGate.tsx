@@ -72,13 +72,12 @@ export function EntryGate() {
     el.style.animation = "countUp 0.3s ease-out";
   }, [balanceTon]);
 
-  // Contract address: prefer backend response, fallback to env vars
-  const CONTRACT_ADDRESS_FALLBACK = 
-    import.meta.env.VITE_CONTRACT_ADDRESS || 
-    import.meta.env.VITE_DICE_GAME_ADDRESS || "";
-  const resolvedContract = status?.contractAddress || CONTRACT_ADDRESS_FALLBACK;
+  // Resolve contract addresses
+  // Deposit/Withdraw → DepositVault; PlayRound → DiceGameV2 (passed via status.contractAddress)
+  const DEPOSIT_VAULT_FALLBACK = import.meta.env.VITE_DEPOSIT_VAULT_ADDRESS || "";
+  const depositVaultAddress = status?.depositVaultAddress || DEPOSIT_VAULT_FALLBACK;
 
-  // ── Deposit, Withdraw, Claim handlers ──
+  // ── Deposit handler → sends to DepositVault ──
   const handleDeposit = async (amountStr: string) => {
     const v = Number(amountStr);
     if (!Number.isFinite(v) || v < 0.01) {
@@ -91,18 +90,19 @@ export function EntryGate() {
     }
 
     if (!wallet) throw new Error("Wallet not connected");
-    if (!resolvedContract) throw new Error("Contract address not configured. Please set VITE_CONTRACT_ADDRESS in frontend/.env");
+    if (!depositVaultAddress) throw new Error("DepositVault address not configured");
 
     await tonConnectUI.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [{
-        address: resolvedContract,
+        address: depositVaultAddress,
         amount: toNano(String(v)).toString(),
         payload: buildDepositPayload()
       }]
     });
   };
 
+  // ── Withdraw handler → sends to DepositVault ──
   const handleWithdrawBalance = async () => {
     const balanceNum = Number(balanceTon);
     if (balanceNum <= 0) throw new Error("No balance to withdraw");
@@ -113,18 +113,19 @@ export function EntryGate() {
     }
 
     if (!wallet) throw new Error("Wallet not connected");
-    if (!resolvedContract) throw new Error("Contract address not configured. Please set VITE_CONTRACT_ADDRESS in frontend/.env");
+    if (!depositVaultAddress) throw new Error("DepositVault address not configured");
 
     await tonConnectUI.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [{
-        address: resolvedContract,
-        amount: "0",
+        address: depositVaultAddress,
+        amount: toNano("0.05").toString(), // gas fee
         payload: buildWithdrawBalancePayload(toNano(String(balanceNum)))
       }]
     });
   };
 
+  // ── Claim handler → also sends to DepositVault (same as withdraw) ──
   const handleClaim = async () => {
     if (DEV_MOCK_WALLET) {
       setClaimableTon("0.0000");
@@ -132,14 +133,14 @@ export function EntryGate() {
     }
 
     if (!wallet) throw new Error("Wallet not connected");
-    if (!resolvedContract) throw new Error("Contract address not configured. Please set VITE_CONTRACT_ADDRESS in frontend/.env");
+    if (!depositVaultAddress) throw new Error("DepositVault address not configured");
 
     await tonConnectUI.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [{
-        address: resolvedContract,
-        amount: "0",
-        payload: buildClaimPayload(0n)
+        address: depositVaultAddress,
+        amount: toNano("0.05").toString(), // gas fee
+        payload: buildWithdrawBalancePayload(toNano(String(claimableTon)))
       }]
     });
   };
