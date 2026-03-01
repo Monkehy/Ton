@@ -87,6 +87,12 @@ export interface Messages {
   claimable: string;
   claimWinningsHint: string;
   claimNow: string;
+
+  // Disconnect modal
+  disconnectWallet: string;
+  disconnectConfirm: string;
+  cancel: string;
+  disconnect: string;
 }
 
 const en: Messages = {
@@ -147,6 +153,10 @@ const en: Messages = {
   claimable: "Claimable",
   claimWinningsHint: "Claim your winnings and rebates",
   claimNow: "Claim Now",
+  disconnectWallet: "Disconnect Wallet",
+  disconnectConfirm: "Are you sure you want to disconnect your wallet?",
+  cancel: "Cancel",
+  disconnect: "Disconnect",
 };
 
 const es: Messages = {
@@ -209,6 +219,10 @@ const es: Messages = {
   claimable: "Reclamable",
   claimWinningsHint: "Reclama tus ganancias y reembolsos",
   claimNow: "Reclamar Ahora",
+  disconnectWallet: "Desconectar Cartera",
+  disconnectConfirm: "¿Estás seguro de que quieres desconectar tu cartera?",
+  cancel: "Cancelar",
+  disconnect: "Desconectar",
 };
 
 const pt: Messages = {
@@ -271,6 +285,10 @@ const pt: Messages = {
   claimable: "Resgatável",
   claimWinningsHint: "Resgate seus ganhos e reembolsos",
   claimNow: "Resgatar Agora",
+  disconnectWallet: "Desconectar Carteira",
+  disconnectConfirm: "Tem certeza de que deseja desconectar sua carteira?",
+  cancel: "Cancelar",
+  disconnect: "Desconectar",
 };
 
 const zhTW: Messages = {
@@ -333,6 +351,10 @@ const zhTW: Messages = {
   claimable: "可領取",
   claimWinningsHint: "領取您的獎金和返水",
   claimNow: "立即領取",
+  disconnectWallet: "斷開錢包連接",
+  disconnectConfirm: "確定要斷開錢包連接嗎？",
+  cancel: "取消",
+  disconnect: "斷開連接",
 };
 
 const ru: Messages = {
@@ -395,6 +417,10 @@ const ru: Messages = {
   claimable: "Доступно",
   claimWinningsHint: "Получите выигрыши и возвраты",
   claimNow: "Получить сейчас",
+  disconnectWallet: "Отключить кошелёк",
+  disconnectConfirm: "Вы уверены, что хотите отключить кошелёк?",
+  cancel: "Отмена",
+  disconnect: "Отключить",
 };
 
 export const messages: Record<Locale, Messages> = { en, es, pt, "zh-TW": zhTW, ru };

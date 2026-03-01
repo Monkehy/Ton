@@ -25,6 +25,7 @@ export function EntryGate() {
   const [error, setError] = useState("");
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showBalanceSheet, setShowBalanceSheet] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Hide language switcher in restricted regions
   const isRestricted = status?.mode === "MODE_CLEAN";
@@ -107,15 +108,19 @@ export function EntryGate() {
         {/* Left: wallet pill + history button */}
         <div className="flex items-center gap-2">
           {connected && wallet ? (
-            <div
-              className="flex items-center gap-2 rounded-full px-3 py-[7px]"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            <button
+              type="button"
+              onClick={() => setShowDisconnectModal(true)}
+              className="flex items-center gap-2 rounded-full px-3 py-[7px] cursor-pointer"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", transition: "border-color 0.2s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
             >
               <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: "var(--green)", boxShadow: "0 0 6px var(--green)" }} />
               <span className="text-[13px] font-medium" style={{ color: "var(--text)" }}>
                 {wallet.slice(0, 6)}…{wallet.slice(-4)}
               </span>
-            </div>
+            </button>
           ) : (
             <TonConnectButton />
           )}
@@ -243,6 +248,82 @@ export function EntryGate() {
         balanceTon={balanceTon}
         claimableTon={claimableTon}
       />
+
+      {/* Disconnect confirmation modal */}
+      {showDisconnectModal && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[100]"
+            style={{ background: "rgba(0,0,0,0.6)" }}
+            onClick={() => setShowDisconnectModal(false)}
+          />
+
+          {/* Modal */}
+          <div
+            className="fixed top-1/2 left-1/2 z-[101] w-[90%] max-w-[340px] rounded-2xl p-6"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              transform: "translate(-50%, -50%)",
+              animation: "modalFadeIn 0.2s ease-out"
+            }}
+          >
+            <h3 className="text-lg font-bold mb-2" style={{ color: "var(--text)" }}>
+              {t.disconnectWallet || "Disconnect Wallet"}
+            </h3>
+            <p className="text-sm mb-6" style={{ color: "var(--text-dim)" }}>
+              {t.disconnectConfirm || "Are you sure you want to disconnect your wallet?"}
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDisconnectModal(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                style={{
+                  background: "var(--surface2)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-dim)"
+                }}
+              >
+                {t.cancel || "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!DEV_MOCK_WALLET) {
+                    await tonConnectUI.disconnect();
+                  }
+                  setShowDisconnectModal(false);
+                }}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                style={{
+                  background: "linear-gradient(135deg,#ef4444,#f87171)",
+                  color: "#fff",
+                  boxShadow: "0 4px 16px rgba(239,68,68,0.3)"
+                }}
+              >
+                {t.disconnect || "Disconnect"}
+              </button>
+            </div>
+          </div>
+
+          <style>{`
+            @keyframes modalFadeIn {
+              from {
+                opacity: 0;
+                transform: translate(-50%, -48%);
+              }
+              to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+              }
+            }
+          `}</style>
+        </>
+      )}
     </div>
   );
 }
