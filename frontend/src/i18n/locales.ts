@@ -73,6 +73,20 @@ export interface Messages {
   betCol: string;
   plusPayout: (v: string) => string;
   minusLoss: (v: string) => string;
+
+  // BalanceSheet
+  balanceManagement: string;
+  deposit: string;
+  withdraw: string;
+  depositAmount: string;
+  confirmDeposit: string;
+  depositHint: string;
+  withdrawBalanceHint: string;
+  availableBalance: string;
+  withdrawAll: string;
+  claimable: string;
+  claimWinningsHint: string;
+  claimNow: string;
 }
 
 const en: Messages = {
@@ -121,6 +135,18 @@ const en: Messages = {
   betCol: "Bet",
   plusPayout: (v) => `+${v} TON`,
   minusLoss: (v) => `−${v} TON`,
+  balanceManagement: "Balance Management",
+  deposit: "Deposit",
+  withdraw: "Withdraw",
+  depositAmount: "Deposit Amount",
+  confirmDeposit: "Confirm Deposit",
+  depositHint: "Deposit from your wallet to game balance",
+  withdrawBalanceHint: "Withdraw your game balance back to wallet",
+  availableBalance: "Available Balance",
+  withdrawAll: "Withdraw All Balance",
+  claimable: "Claimable",
+  claimWinningsHint: "Claim your winnings and rebates",
+  claimNow: "Claim Now",
 };
 
 const es: Messages = {
@@ -171,6 +197,18 @@ const es: Messages = {
   betCol: "Apuesta",
   plusPayout: (v) => `+${v} TON`,
   minusLoss: (v) => `−${v} TON`,
+  balanceManagement: "Gestión de Saldo",
+  deposit: "Depositar",
+  withdraw: "Retirar",
+  depositAmount: "Monto a Depositar",
+  confirmDeposit: "Confirmar Depósito",
+  depositHint: "Deposita desde tu cartera al saldo del juego",
+  withdrawBalanceHint: "Retira tu saldo del juego a tu cartera",
+  availableBalance: "Saldo Disponible",
+  withdrawAll: "Retirar Todo el Saldo",
+  claimable: "Reclamable",
+  claimWinningsHint: "Reclama tus ganancias y reembolsos",
+  claimNow: "Reclamar Ahora",
 };
 
 const pt: Messages = {
@@ -221,6 +259,18 @@ const pt: Messages = {
   betCol: "Aposta",
   plusPayout: (v) => `+${v} TON`,
   minusLoss: (v) => `−${v} TON`,
+  balanceManagement: "Gestão de Saldo",
+  deposit: "Depositar",
+  withdraw: "Retirar",
+  depositAmount: "Montante a Depositar",
+  confirmDeposit: "Confirmar Depósito",
+  depositHint: "Deposite da sua carteira para o saldo do jogo",
+  withdrawBalanceHint: "Retire seu saldo do jogo para sua carteira",
+  availableBalance: "Saldo Disponível",
+  withdrawAll: "Retirar Todo o Saldo",
+  claimable: "Resgatável",
+  claimWinningsHint: "Resgate seus ganhos e reembolsos",
+  claimNow: "Resgatar Agora",
 };
 
 const zhTW: Messages = {
@@ -271,6 +321,18 @@ const zhTW: Messages = {
   betCol: "投注",
   plusPayout: (v) => `+${v} TON`,
   minusLoss: (v) => `−${v} TON`,
+  balanceManagement: "餘額管理",
+  deposit: "充值",
+  withdraw: "提現",
+  depositAmount: "充值金額",
+  confirmDeposit: "確認充值",
+  depositHint: "從錢包充值到遊戲餘額",
+  withdrawBalanceHint: "將遊戲餘額提現到錢包",
+  availableBalance: "可用餘額",
+  withdrawAll: "提現全部餘額",
+  claimable: "可領取",
+  claimWinningsHint: "領取您的獎金和返水",
+  claimNow: "立即領取",
 };
 
 const ru: Messages = {
@@ -321,6 +383,18 @@ const ru: Messages = {
   betCol: "Ставка",
   plusPayout: (v) => `+${v} TON`,
   minusLoss: (v) => `−${v} TON`,
+  balanceManagement: "Управление балансом",
+  deposit: "Пополнить",
+  withdraw: "Вывести",
+  depositAmount: "Сумма пополнения",
+  confirmDeposit: "Подтвердить пополнение",
+  depositHint: "Пополните баланс игры из кошелька",
+  withdrawBalanceHint: "Выведите баланс игры в кошелёк",
+  availableBalance: "Доступный баланс",
+  withdrawAll: "Вывести весь баланс",
+  claimable: "Доступно",
+  claimWinningsHint: "Получите выигрыши и возвраты",
+  claimNow: "Получить сейчас",
 };
 
 export const messages: Record<Locale, Messages> = { en, es, pt, "zh-TW": zhTW, ru };

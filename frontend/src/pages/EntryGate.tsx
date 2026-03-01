@@ -7,6 +7,7 @@ import { fetchUserStatus, type UserStatus, DEV_MOCK_WALLET } from "../lib/api";
 import { CleanSnakeGame } from "./CleanSnakeGame";
 import { HistoryPage } from "./HistoryPage";
 import { NumberLobby } from "./NumberLobby";
+import { BalanceSheet } from "../components/BalanceSheet";
 import { useT } from "../i18n/LocaleContext";
 import { LOCALES } from "../i18n/locales";
 
@@ -23,6 +24,7 @@ export function EntryGate() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showBalanceSheet, setShowBalanceSheet] = useState(false);
 
   // Hide language switcher in restricted regions
   const isRestricted = status?.mode === "MODE_CLEAN";
@@ -202,13 +204,18 @@ export function EntryGate() {
           )}
 
           {/* Balance */}
-          <div className="flex flex-col items-end">
+          <button
+            type="button"
+            onClick={() => setShowBalanceSheet(true)}
+            className="flex flex-col items-end cursor-pointer"
+            style={{ background: "transparent", border: "none", padding: 0 }}
+          >
             <span className="text-[10px] uppercase tracking-[0.06em]" style={{ color: "var(--text-muted)" }}>{t.gameBalance}</span>
             <div className="text-lg font-bold leading-tight" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
               <span ref={balanceRef}>{balanceTon}</span>
               <span className="text-[11px] font-medium ml-[2px]" style={{ color: "var(--text-muted)" }}>TON</span>
             </div>
-          </div>
+          </button>
         </div>
       </header>
 
@@ -228,6 +235,14 @@ export function EntryGate() {
           />
         )}
       </main>
+
+      {/* Balance management sheet */}
+      <BalanceSheet
+        show={showBalanceSheet}
+        onClose={() => setShowBalanceSheet(false)}
+        balanceTon={balanceTon}
+        claimableTon={claimableTon}
+      />
     </div>
   );
 }
