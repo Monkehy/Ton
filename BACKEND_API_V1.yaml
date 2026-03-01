@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: TON-TMA Backend API v1
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/user/status:
+    get:
+      summary: 查询用户状态
+      parameters:
+        - in: query
+          name: wallet
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-Telegram-Init-Data
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStatusResponse"
+  /api/referral/bind:
+    post:
+      summary: 绑定引荐关系
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReferralBindRequest"
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "409":
+          description: 已绑定或冲突
+  /api/score/submit:
+    post:
+      summary: 提交交易用于异步积分处理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoreSubmitRequest"
+      responses:
+        "200":
+          description: 幂等返回
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreSubmitResponse"
+  /api/rounds/recent:
+    get:
+      summary: 最近局记录
+      parameters:
+        - in: query
+          name: wallet
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RoundItem"
+
+components:
+  schemas:
+    UserStatusResponse:
+      type: object
+      required: [wallet, mode, pauseState, maxAmountTon, score, level]
+      properties:
+        wallet:
+          type: string
+        mode:
+          type: string
+          enum: [MODE_CLEAN, MODE_GAMING]
+        modeReason:
+          type: string
+        pauseState:
+          type: boolean
+        maxAmountTon:
+          type: string
+          example: "12.5000"
+        score:
+          type: string
+          example: "23.4000"
+        level:
+          type: string
+          enum: [BRONZE, SILVER, GOLD]
+        rateLimit:
+          type: object
+          properties:
+            windowSec:
+              type: integer
+              example: 10
+            maxRequests:
+              type: integer
+              example: 2
+    ReferralBindRequest:
+      type: object
+      required: [wallet, referrerWallet, signature]
+      properties:
+        wallet:
+          type: string
+        referrerWallet:
+          type: string
+        signature:
+          type: string
+    ScoreSubmitRequest:
+      type: object
+      required: [wallet, txHash, network]
+      properties:
+        wallet:
+          type: string
+        txHash:
+          type: string
+        network:
+          type: string
+          enum: [mainnet]
+    ScoreSubmitResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        status:
+          type: string
+          enum: [PENDING_CONFIRM, CONFIRMED_SCORED, REVERTED, DUPLICATE_IGNORED]
+        scoreDelta:
+          type: string
+          nullable: true
+    RoundItem:
+      type: object
+      properties:
+        roundId:
+          type: integer
+        wallet:
+          type: string
+        direction:
+          type: string
+          enum: ["<=", ">="]
+        threshold:
+          type: integer
+          enum: [2, 3, 4, 5]
+        amountTon:
+          type: string
+        roll:
+          type: integer
+          minimum: 1
+          maximum: 6
+        result:
+          type: string
+          enum: [SUCCESS, FAIL]
+        payoutTon:
+          type: string
+        rebateTon:
+          type: string
+        txHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean

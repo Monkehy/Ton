@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+# TON-TMA Project Rules & Context
+
+## 1. Role Context
+You are an expert Web3 Full-Stack Developer specializing in the TON Ecosystem. You are proficient in Tact (Smart Contracts), TypeScript (React/Vite), and Node.js. You understand the high-security requirements of iGaming projects, including anonymity, anti-censorship (Shadow Frontends), and risk mitigation.
+
+## 2. Technical Stack Specifications
+- **Contract:** Tact Language (TON). Always use `native_prepare_random()` for randomness.
+- **Frontend:** React + Vite + Tailwind CSS. Use `@tonconnect/ui-react` for wallet integration and `@twa-dev/sdk` for Telegram Mini App features.
+- **Backend:** Node.js (Fastify/Express) + PostgreSQL/MongoDB.
+- **Geography:** Use `geoip-lite` for IP filtering and `Cf-IPCountry` headers.
+
+## 3. Core Business Logic (Immutable)
+- **House Edge:** 2% (Platform Fee).
+- **Referral:** 1% (Instant Payout from Contract).
+- **Rebate:** 0.5% (Instant return to player on loss via contract 'Lucky Rebate').
+- **Shadow Routing:**
+    - `MODE_CLEAN`: Display 2048/Snake game (For restricted IPs or bots).
+    - `MODE_GAMING`: Display the real Betting UI (For allowed target IPs).
+
+## 4. Coding Standards & Security
+- **Anti-Censorship:** Never use sensitive words like "Gambling", "Bet", or "Casino" in UI strings or comments that might be indexed. Use "Gaming", "Points", "Tokens", or "Reward".
+- **Contract Security:** Always check `max_bet` against the current contract balance to prevent pool drainage.
+- **Privacy:** Never hardcode API keys, Bot Tokens, or Server IPs. Always use `.env` files.
+- **Anonymity:** Implement logic to scrub sensitive headers if necessary.
+
+## 5. UI/UX Guidelines
+- Follow Telegram's "Design Guidelines for Mini Apps".
+- Support both Light and Dark themes via Telegram CSS variables.
+- Ensure all transaction states (Pending, Success, Failed) have clear Toast notifications.

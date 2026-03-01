@@ -1,0 +1,21 @@
+{
+  "name": "ton-tma-v1",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "contracts"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"backend,frontend\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "build": "npm --workspace contracts run build && npm --workspace backend run build && npm --workspace frontend run build",
+    "build:contracts": "npm --workspace contracts run build",
+    "deploy:mainnet": "npm --workspace contracts run mainnet:deploy"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

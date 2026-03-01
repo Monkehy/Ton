@@ -1,0 +1,152 @@
+# 依赖
+node_modules/
+.pnp/
+.pnp.js
+package-lock.json
+yarn.lock
+
+# 构建产物
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# ========================================
+# 环境变量（重要！包含密钥和密码）
+# ========================================
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.*.local
+**/.env
+**/.env.local
+backend/.env
+frontend/.env
+contracts/.env
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log.*
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# 临时文件
+*.tmp
+.cache/
+.temp/
+tmp/
+
+# PM2
+.pm2/
+
+# 数据库
+*.sql
+*.db
+*.sqlite
+
+# 合约编译产物
+contracts/build/
+contracts/node_modules/
+contracts/.tact-build-cache/
+
+# ========================================
+# 部署相关（包含敏感的合约地址和配置）
+# ========================================
+deployment-*.json
+deployment*.json
+*-deployment.json
+deployment-*.env
+*.backup
+*.bak
+
+# ========================================
+# 密钥和证书（非常重要！）
+# ========================================
+*.key
+*.pem
+*.p12
+*.pfx
+*.cert
+*.crt
+*.csr
+*.der
+**/keys/
+**/certs/
+**/secrets/
+private-keys/
+wallets/
+mnemonic.txt
+seed.txt
+*.mnemonic
+
+# ========================================
+# 数据库备份（可能包含用户数据）
+# ========================================
+*.sql
+*.sql.gz
+*.dump
+*.db
+*.sqlite
+*.sqlite3
+database-backup/
+db-backup/
+
+# ========================================
+# 配置文件（可能包含敏感信息）
+# ========================================
+config.local.json
+config.production.json
+secrets.json
+credentials.json
+
+# ========================================
+# PM2 和日志（可能包含敏感信息）
+# ========================================
+.pm2/
+pm2.log
+*.log
+logs/
+*.log.*
+
+# ========================================
+# SSH 和服务器配置
+# ========================================
+*.pem
+*.ppk
+known_hosts
+authorized_keys
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
