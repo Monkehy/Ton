@@ -34,7 +34,9 @@ export async function userRoutes(app: FastifyInstance): Promise<void> {
         maxAmountTon: contractSnapshot?.maxAmountTon ?? "0.0000",
         balanceTon: contractSnapshot?.balanceTon,
         claimableTon: contractSnapshot?.claimableTon,
-        contractAddress: config.TON_MAINNET_CONTRACT_ADDRESS ?? undefined,
+        contractAddress: config.CHAIN_PROVIDER === "ton_testnet"
+          ? (config.TON_TESTNET_CONTRACT_ADDRESS ?? undefined)
+          : (config.TON_MAINNET_CONTRACT_ADDRESS ?? undefined),
         contract: contractSnapshot
           ? {
               paused: contractSnapshot.paused,

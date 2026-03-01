@@ -24,40 +24,54 @@ export function BalanceSheet({
   const [depositAmount, setDepositAmount] = useState("1.0");
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [loading, setLoading] = useState(false);
+  const [txError, setTxError] = useState("");
 
   if (!show) return null;
 
   const handleDeposit = async () => {
+    setTxError("");
     setLoading(true);
     try {
       await onDeposit(depositAmount);
       onClose();
     } catch (error) {
-      console.error("Deposit failed:", error);
+      // User rejected transaction → don't show error
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!msg.toLowerCase().includes("cancel") && !msg.toLowerCase().includes("reject") && !msg.toLowerCase().includes("denied")) {
+        setTxError(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleWithdrawBalance = async () => {
+    setTxError("");
     setLoading(true);
     try {
       await onWithdrawBalance();
       onClose();
     } catch (error) {
-      console.error("Withdraw failed:", error);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!msg.toLowerCase().includes("cancel") && !msg.toLowerCase().includes("reject") && !msg.toLowerCase().includes("denied")) {
+        setTxError(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleClaim = async () => {
+    setTxError("");
     setLoading(true);
     try {
       await onClaim();
       onClose();
     } catch (error) {
-      console.error("Claim failed:", error);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!msg.toLowerCase().includes("cancel") && !msg.toLowerCase().includes("reject") && !msg.toLowerCase().includes("denied")) {
+        setTxError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -126,6 +140,16 @@ export function BalanceSheet({
               </div>
             </div>
           </div>
+
+          {/* Error message */}
+          {txError && (
+            <div
+              className="rounded-xl px-4 py-3 text-sm"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}
+            >
+              {txError}
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-2 rounded-xl p-1" style={{ background: "var(--surface)" }}>

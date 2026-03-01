@@ -72,82 +72,74 @@ export function EntryGate() {
     el.style.animation = "countUp 0.3s ease-out";
   }, [balanceTon]);
 
+  // Contract address: prefer backend response, fallback to env vars
+  const CONTRACT_ADDRESS_FALLBACK = 
+    import.meta.env.VITE_CONTRACT_ADDRESS || 
+    import.meta.env.VITE_DICE_GAME_ADDRESS || "";
+  const resolvedContract = status?.contractAddress || CONTRACT_ADDRESS_FALLBACK;
+
   // ── Deposit, Withdraw, Claim handlers ──
   const handleDeposit = async (amountStr: string) => {
     const v = Number(amountStr);
     if (!Number.isFinite(v) || v < 0.01) {
-      throw new Error("Invalid deposit amount");
+      throw new Error("Amount must be at least 0.01 TON");
     }
-    
+
     if (DEV_MOCK_WALLET) {
-      const newBalance = Number(balanceTon) + v;
-      setBalanceTon(newBalance.toFixed(4));
+      setBalanceTon((Number(balanceTon) + v).toFixed(4));
       return;
     }
-    
-    const contract = status?.contractAddress;
-    if (!contract || !wallet) {
-      throw new Error("Contract address or wallet not available");
-    }
-    
+
+    if (!wallet) throw new Error("Wallet not connected");
+    if (!resolvedContract) throw new Error("Contract address not configured. Please set VITE_CONTRACT_ADDRESS in frontend/.env");
+
     await tonConnectUI.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
-      messages: [{ 
-        address: contract, 
-        amount: toNano(String(v)).toString(), 
-        payload: buildDepositPayload() 
+      messages: [{
+        address: resolvedContract,
+        amount: toNano(String(v)).toString(),
+        payload: buildDepositPayload()
       }]
     });
   };
 
   const handleWithdrawBalance = async () => {
     const balanceNum = Number(balanceTon);
-    if (balanceNum <= 0) {
-      throw new Error("No balance to withdraw");
-    }
-    
+    if (balanceNum <= 0) throw new Error("No balance to withdraw");
+
     if (DEV_MOCK_WALLET) {
       setBalanceTon("0.0000");
       return;
     }
-    
-    const contract = status?.contractAddress;
-    if (!contract || !wallet) {
-      throw new Error("Contract address or wallet not available");
-    }
-    
+
+    if (!wallet) throw new Error("Wallet not connected");
+    if (!resolvedContract) throw new Error("Contract address not configured. Please set VITE_CONTRACT_ADDRESS in frontend/.env");
+
     await tonConnectUI.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
-      messages: [{ 
-        address: contract, 
-        amount: "0", 
-        payload: buildWithdrawBalancePayload(toNano(String(balanceNum))) 
+      messages: [{
+        address: resolvedContract,
+        amount: "0",
+        payload: buildWithdrawBalancePayload(toNano(String(balanceNum)))
       }]
     });
   };
 
   const handleClaim = async () => {
-    const claimNum = Number(claimableTon);
-    if (claimNum <= 0) {
-      throw new Error("No claimable amount");
-    }
-    
     if (DEV_MOCK_WALLET) {
       setClaimableTon("0.0000");
       return;
     }
-    
-    const contract = status?.contractAddress;
-    if (!contract || !wallet) {
-      throw new Error("Contract address or wallet not available");
-    }
-    
+
+    if (!wallet) throw new Error("Wallet not connected");
+    if (!resolvedContract) throw new Error("Contract address not configured. Please set VITE_CONTRACT_ADDRESS in frontend/.env");
+
     await tonConnectUI.sendTransaction({
       validUntil: Math.floor(Date.now() / 1000) + 300,
-      messages: [{ 
-        address: contract, 
-        amount: "0", 
-        payload: buildClaimPayload(0n) 
+      messages: [{
+        address: resolvedContract,
+        amount: "0",
+        payload: buildClaimPayload(0n)
       }]
     });
   };
