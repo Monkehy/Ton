@@ -76,7 +76,23 @@ if [ -d "ton-dice" ]; then
   mv ton-dice ton-dice.backup.$(date +%Y%m%d_%H%M%S)
 fi
 
-git clone https://github.com/Monkehy/Ton.git ton-dice
+echo ""
+echo "仓库克隆方式："
+echo "1. 公开仓库（直接克隆）"
+echo "2. 私有仓库（需要 GitHub Token）"
+read -p "选择 [1/2]: " clone_method
+
+if [ "$clone_method" == "2" ]; then
+  echo ""
+  echo "请输入 GitHub Personal Access Token:"
+  echo "（获取地址: https://github.com/settings/tokens）"
+  read -s github_token
+  echo ""
+  git clone https://${github_token}@github.com/Monkehy/Ton.git ton-dice
+else
+  git clone https://github.com/Monkehy/Ton.git ton-dice
+fi
+
 cd ton-dice
 echo -e "${GREEN}✅ 代码已克隆${NC}"
 
