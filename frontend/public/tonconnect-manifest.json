@@ -1,5 +1,7 @@
 {
-  "url": "http://localhost:5173",
-  "name": "TON TMA v1",
-  "iconUrl": "https://ton.org/download/ton_symbol.png"
+  "url": "https://test.bitwin.fans",
+  "name": "TON Dice Game",
+  "iconUrl": "https://test.bitwin.fans/favicon.ico",
+  "termsOfUseUrl": "https://test.bitwin.fans",
+  "privacyPolicyUrl": "https://test.bitwin.fans"
 }
