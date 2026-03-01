@@ -4,6 +4,11 @@ import { TonConnectButton, useTonAddress, useTonWallet } from "@tonconnect/ui-re
 import { useTonConnectUI } from "@tonconnect/ui-react";
 import { toNano } from "@ton/core";
 import { fetchUserStatus, type UserStatus, DEV_MOCK_WALLET } from "../lib/api";
+import { 
+  buildDepositPayload, 
+  buildWithdrawBalancePayload, 
+  buildClaimPayload 
+} from "../lib/playRound";
 import { CleanSnakeGame } from "./CleanSnakeGame";
 import { HistoryPage } from "./HistoryPage";
 import { NumberLobby } from "./NumberLobby";
@@ -66,6 +71,86 @@ export function EntryGate() {
     void el.offsetHeight;
     el.style.animation = "countUp 0.3s ease-out";
   }, [balanceTon]);
+
+  // ── Deposit, Withdraw, Claim handlers ──
+  const handleDeposit = async (amountStr: string) => {
+    const v = Number(amountStr);
+    if (!Number.isFinite(v) || v < 0.01) {
+      throw new Error("Invalid deposit amount");
+    }
+    
+    if (DEV_MOCK_WALLET) {
+      const newBalance = Number(balanceTon) + v;
+      setBalanceTon(newBalance.toFixed(4));
+      return;
+    }
+    
+    const contract = status?.contractAddress;
+    if (!contract || !wallet) {
+      throw new Error("Contract address or wallet not available");
+    }
+    
+    await tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [{ 
+        address: contract, 
+        amount: toNano(String(v)).toString(), 
+        payload: buildDepositPayload() 
+      }]
+    });
+  };
+
+  const handleWithdrawBalance = async () => {
+    const balanceNum = Number(balanceTon);
+    if (balanceNum <= 0) {
+      throw new Error("No balance to withdraw");
+    }
+    
+    if (DEV_MOCK_WALLET) {
+      setBalanceTon("0.0000");
+      return;
+    }
+    
+    const contract = status?.contractAddress;
+    if (!contract || !wallet) {
+      throw new Error("Contract address or wallet not available");
+    }
+    
+    await tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [{ 
+        address: contract, 
+        amount: "0", 
+        payload: buildWithdrawBalancePayload(toNano(String(balanceNum))) 
+      }]
+    });
+  };
+
+  const handleClaim = async () => {
+    const claimNum = Number(claimableTon);
+    if (claimNum <= 0) {
+      throw new Error("No claimable amount");
+    }
+    
+    if (DEV_MOCK_WALLET) {
+      setClaimableTon("0.0000");
+      return;
+    }
+    
+    const contract = status?.contractAddress;
+    if (!contract || !wallet) {
+      throw new Error("Contract address or wallet not available");
+    }
+    
+    await tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [{ 
+        address: contract, 
+        amount: "0", 
+        payload: buildClaimPayload(0n) 
+      }]
+    });
+  };
 
   // ── Loading / Error states ──
   if (loading && !status) {
@@ -247,6 +332,9 @@ export function EntryGate() {
         onClose={() => setShowBalanceSheet(false)}
         balanceTon={balanceTon}
         claimableTon={claimableTon}
+        onDeposit={handleDeposit}
+        onWithdrawBalance={handleWithdrawBalance}
+        onClaim={handleClaim}
       />
 
       {/* Disconnect confirmation modal */}

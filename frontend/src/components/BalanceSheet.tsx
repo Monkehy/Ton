@@ -6,42 +6,60 @@ interface BalanceSheetProps {
   onClose: () => void;
   balanceTon: string;
   claimableTon: string;
+  onDeposit: (amount: string) => Promise<void>;
+  onWithdrawBalance: () => Promise<void>;
+  onClaim: () => Promise<void>;
 }
 
-export function BalanceSheet({ show, onClose, balanceTon, claimableTon }: BalanceSheetProps) {
+export function BalanceSheet({ 
+  show, 
+  onClose, 
+  balanceTon, 
+  claimableTon,
+  onDeposit,
+  onWithdrawBalance,
+  onClaim
+}: BalanceSheetProps) {
   const { t } = useT();
   const [depositAmount, setDepositAmount] = useState("1.0");
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
+  const [loading, setLoading] = useState(false);
 
   if (!show) return null;
 
-  const handleDeposit = () => {
-    const handlers = (window as Record<string, unknown>).__lobbyHandlers as {
-      handleDeposit: (amt: string) => void;
-    };
-    if (handlers?.handleDeposit) {
-      handlers.handleDeposit(depositAmount);
+  const handleDeposit = async () => {
+    setLoading(true);
+    try {
+      await onDeposit(depositAmount);
       onClose();
+    } catch (error) {
+      console.error("Deposit failed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleWithdrawBalance = () => {
-    const handlers = (window as Record<string, unknown>).__lobbyHandlers as {
-      handleWithdrawBalance: () => void;
-    };
-    if (handlers?.handleWithdrawBalance) {
-      handlers.handleWithdrawBalance();
+  const handleWithdrawBalance = async () => {
+    setLoading(true);
+    try {
+      await onWithdrawBalance();
       onClose();
+    } catch (error) {
+      console.error("Withdraw failed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleClaim = () => {
-    const handlers = (window as Record<string, unknown>).__lobbyHandlers as {
-      handleClaim: () => void;
-    };
-    if (handlers?.handleClaim) {
-      handlers.handleClaim();
+  const handleClaim = async () => {
+    setLoading(true);
+    try {
+      await onClaim();
       onClose();
+    } catch (error) {
+      console.error("Claim failed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,14 +198,16 @@ export function BalanceSheet({ show, onClose, balanceTon, claimableTon }: Balanc
               <button
                 type="button"
                 onClick={handleDeposit}
+                disabled={loading || Number(depositAmount) < 0.01}
                 className="w-full py-4 rounded-xl text-base font-bold"
                 style={{
-                  background: "linear-gradient(135deg,#4f46e5,#6366f1)",
-                  color: "#fff",
-                  boxShadow: "0 4px 20px rgba(99,102,241,0.3)"
+                  background: loading || Number(depositAmount) < 0.01 ? "var(--surface2)" : "linear-gradient(135deg,#4f46e5,#6366f1)",
+                  color: loading || Number(depositAmount) < 0.01 ? "var(--text-muted)" : "#fff",
+                  boxShadow: loading || Number(depositAmount) < 0.01 ? "none" : "0 4px 20px rgba(99,102,241,0.3)",
+                  cursor: loading || Number(depositAmount) < 0.01 ? "not-allowed" : "pointer"
                 }}
               >
-                {t.confirmDeposit || "Confirm Deposit"}
+                {loading ? t.loading : (t.confirmDeposit || "Confirm Deposit")}
               </button>
 
               <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
@@ -219,16 +239,16 @@ export function BalanceSheet({ show, onClose, balanceTon, claimableTon }: Balanc
               <button
                 type="button"
                 onClick={handleWithdrawBalance}
-                disabled={Number(balanceTon) <= 0}
+                disabled={loading || Number(balanceTon) <= 0}
                 className="w-full py-4 rounded-xl text-base font-bold"
                 style={{
-                  background: Number(balanceTon) > 0 ? "linear-gradient(135deg,#4f46e5,#6366f1)" : "var(--surface2)",
-                  color: Number(balanceTon) > 0 ? "#fff" : "var(--text-muted)",
-                  boxShadow: Number(balanceTon) > 0 ? "0 4px 20px rgba(99,102,241,0.3)" : "none",
-                  cursor: Number(balanceTon) > 0 ? "pointer" : "not-allowed"
+                  background: loading || Number(balanceTon) <= 0 ? "var(--surface2)" : "linear-gradient(135deg,#4f46e5,#6366f1)",
+                  color: loading || Number(balanceTon) <= 0 ? "var(--text-muted)" : "#fff",
+                  boxShadow: loading || Number(balanceTon) <= 0 ? "none" : "0 4px 20px rgba(99,102,241,0.3)",
+                  cursor: loading || Number(balanceTon) <= 0 ? "not-allowed" : "pointer"
                 }}
               >
-                {t.withdrawAll || "Withdraw All Balance"}
+                {loading ? t.loading : (t.withdrawAll || "Withdraw All Balance")}
               </button>
 
               {Number(claimableTon) > 0 && (
@@ -255,14 +275,16 @@ export function BalanceSheet({ show, onClose, balanceTon, claimableTon }: Balanc
                   <button
                     type="button"
                     onClick={handleClaim}
+                    disabled={loading}
                     className="w-full py-4 rounded-xl text-base font-bold"
                     style={{
-                      background: "linear-gradient(135deg,#10b981,#34d399)",
-                      color: "#fff",
-                      boxShadow: "0 4px 20px rgba(52,211,153,0.3)"
+                      background: loading ? "var(--surface2)" : "linear-gradient(135deg,#10b981,#34d399)",
+                      color: loading ? "var(--text-muted)" : "#fff",
+                      boxShadow: loading ? "none" : "0 4px 20px rgba(52,211,153,0.3)",
+                      cursor: loading ? "not-allowed" : "pointer"
                     }}
                   >
-                    {t.claimNow || "Claim Now"}
+                    {loading ? t.loading : (t.claimNow || "Claim Now")}
                   </button>
                 </>
               )}
