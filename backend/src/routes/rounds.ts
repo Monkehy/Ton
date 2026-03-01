@@ -107,7 +107,8 @@ export async function roundsRoutes(app: FastifyInstance): Promise<void> {
 
       const rows = res.rows ?? [];
       const hasMore = rows.length > limit;
-      const items = (hasMore ? rows.slice(0, limit) : rows).map((r) => ({
+      type RoundRow = { round_id: string; wallet: string; direction: number; threshold: number; amount_nano: string; roll: number | null; result: number; payout_nano: string; rebate_nano: string; created_at: Date };
+      const items = (hasMore ? rows.slice(0, limit) : rows).map((r: RoundRow) => ({
         roundId: String(r.round_id),
         wallet: maskWallet(r.wallet),
         walletRaw: r.wallet,
@@ -165,7 +166,8 @@ export async function roundsRoutes(app: FastifyInstance): Promise<void> {
 
       const rows = res.rows ?? [];
       const hasMore = rows.length > limit;
-      const items = (hasMore ? rows.slice(0, limit) : rows).map((r) => ({
+      type RoundRow2 = { round_id: string; wallet: string; direction: number; threshold: number; amount_nano: string; roll: number | null; result: number; payout_nano: string; rebate_nano: string; created_at: Date };
+      const items = (hasMore ? rows.slice(0, limit) : rows).map((r: RoundRow2) => ({
         roundId: String(r.round_id),
         wallet: maskWallet(r.wallet),
         walletRaw: r.wallet,

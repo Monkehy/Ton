@@ -42,7 +42,7 @@ export async function leaderboardRoutes(app: FastifyInstance): Promise<void> {
       const res = await db.query<{ wallet: string; amount_nano: string; rank: string }>(query, [cursorRank, limit + 1]);
       const rows = res.rows ?? [];
       const hasMore = rows.length > limit;
-      const items = (hasMore ? rows.slice(0, limit) : rows).map((r) => {
+      const items = (hasMore ? rows.slice(0, limit) : rows).map((r: { wallet: string; amount_nano: string; rank: string }) => {
         const whole = BigInt(r.amount_nano) / 1_000_000_000n;
         const frac = BigInt(r.amount_nano) % 1_000_000_000n;
         const fracStr = frac.toString().padStart(9, "0").slice(0, 4);

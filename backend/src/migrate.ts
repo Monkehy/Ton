@@ -7,9 +7,11 @@ async function findSchemaFile(): Promise<string> {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const cwd = process.cwd();
   const candidates = [
-    resolve(currentDir, "../../BACKEND_SCHEMA_V1.sql"),
+    resolve(currentDir, "../BACKEND_SCHEMA_V1.sql"),   // dist/ → backend/
+    resolve(currentDir, "../../BACKEND_SCHEMA_V1.sql"), // src/ → backend/
     resolve(currentDir, "../../../BACKEND_SCHEMA_V1.sql"),
     resolve(cwd, "BACKEND_SCHEMA_V1.sql"),
+    resolve(cwd, "backend/BACKEND_SCHEMA_V1.sql"),
     resolve(cwd, "backend/../BACKEND_SCHEMA_V1.sql")
   ];
 

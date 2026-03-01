@@ -176,7 +176,7 @@ export async function resolveTxStatus(input: ResolveInput): Promise<TxResolveRes
     return resolveMock(input);
   }
 
-  if (config.CHAIN_PROVIDER === "ton_mainnet") {
+  if (config.CHAIN_PROVIDER === "ton_mainnet" || config.CHAIN_PROVIDER === "ton_testnet") {
     return resolveTonMainnet(input);
   }
 
