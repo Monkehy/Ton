@@ -26,13 +26,6 @@ export function resolveMode(request: FastifyRequest): {
   modeReason: string;
 } {
   const { country, reason } = pickCountry(request);
-  if (country === "UNKNOWN") {
-    return { mode: "MODE_CLEAN", modeReason: "UNKNOWN_COUNTRY" };
-  }
-
-  if (restrictedCountries.has(country)) {
-    return { mode: "MODE_CLEAN", modeReason: `${reason}:${country}` };
-  }
-
+  // All regions are now allowed
   return { mode: "MODE_GAMING", modeReason: `${reason}:${country}` };
 }
