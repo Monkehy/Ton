@@ -4,7 +4,6 @@ import {
   fetchMyRounds,
   fetchRecentRounds,
   fetchWonLeaderboard,
-  DEV_MOCK_WALLET,
   type RoundItem,
   type WonLeaderboardItem
 } from "../lib/api";
@@ -69,8 +68,7 @@ function RankCard({ rank, wallet, value, valueColor }: { rank: number; wallet: s
 
 export function HistoryPage({ onBack }: { onBack: () => void }) {
   const { t } = useT();
-  const realWallet = useTonAddress();
-  const wallet = DEV_MOCK_WALLET || realWallet;
+  const wallet = useTonAddress();
   const [tab, setTab] = useState<TabKey>("my");
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
