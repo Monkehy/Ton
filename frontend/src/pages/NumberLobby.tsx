@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTonConnectUI } from "@tonconnect/ui-react";
 import { toNano } from "@ton/core";
-import { fetchUserStatus, fetchRecentTransactions, submitScore, submitRound, DEV_MOCK_WALLET } from "../lib/api";
+import { fetchRecentTransactions, submitScore, submitRound } from "../lib/api";
 import {
-  buildDepositPayload,
   buildPlayRoundPayload,
   buildWithdrawBalancePayload,
   buildClaimPayload
@@ -11,23 +10,20 @@ import {
 import { ResultModal } from "../components/ResultModal";
 import { useT } from "../i18n/LocaleContext";
 
-const DEV_MOCK = Boolean(DEV_MOCK_WALLET);
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
 const POLL_INTERVAL_MS = 2500;
 const POLL_MAX_WAIT_MS = 90_000;
 const MIN_PLAY_TON = 0.1;
 const ROLL_DURATION_MS = 3000;
 
-// 1-face hit (threshold=6 high / threshold=1 low) uses special 5.0x odds
 const PAYOUT_BPS: Record<number, number> = { 1: 50000, 2: 28475, 3: 19000, 4: 14263, 5: 11420 };
 function calcHitCount(dir: "high" | "low", t: number) {
-  if (dir === "high") return 7 - t;   // t=1→6, t=6→1
-  return t;                            // t=1→1, t=6→6
+  if (dir === "high") return 7 - t;
+  return t;
 }
-// Returns null for impossible (must-win) combos
 function calcOdds(dir: "high" | "low", t: number): string | null {
   const hc = calcHitCount(dir, t);
-  if (hc >= 6) return null; // must-win, disallow
+  if (hc >= 6) return null;
   return ((PAYOUT_BPS[hc] ?? 19000) / 10000).toFixed(2);
 }
 function isMustWin(dir: "high" | "low" | null, t: number) {
@@ -65,7 +61,7 @@ export function NumberLobby({
   onBalanceChange,
   onClaimableChange
 }: NumberLobbyProps) {
-  const contract = contractAddress ?? CONTRACT_ADDRESS;
+  const contract = contractAddress || CONTRACT_ADDRESS;
   const maxBet = Number(maxAmountTon) || Infinity;
   const [tonConnectUI] = useTonConnectUI();
   const { t } = useT();
@@ -86,10 +82,9 @@ export function NumberLobby({
   const hasEnoughBalance = balanceNum >= inputAmount;
   const mustWin = isMustWin(selectedDir, threshold);
   const canStart = Boolean(
-    (DEV_MOCK || contract) && wallet && isAmountValid && hasEnoughBalance && selectedDir && !isRolling && !mustWin
+    contract && wallet && isAmountValid && hasEnoughBalance && selectedDir && !isRolling && !mustWin
   );
 
-  // ── Slider fill ──
   function sliderStyle(val: number) {
     const pct = ((val - 1) / 5) * 100;
     return `linear-gradient(to right, var(--accent) ${pct}%, var(--surface2) ${pct}%)`;
@@ -112,7 +107,6 @@ export function NumberLobby({
     setSelectedDir(dir);
   }
 
-  // ── Rolling animation ──
   const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startRollingAnimation = useCallback((onDone: (roll: number) => void) => {
@@ -139,21 +133,20 @@ export function NumberLobby({
 
   useEffect(() => () => { if (rollTimerRef.current) clearTimeout(rollTimerRef.current); }, []);
 
-  // ── Poll & submit (real chain) ──
   async function pollAndSubmitScore() {
     let lastLt = 0;
     try {
       const { transactions } = await fetchRecentTransactions(contract, wallet);
-      lastLt = Math.max(0, ...transactions.map((t) => t.lt ?? 0));
+      lastLt = Math.max(0, ...transactions.map((tx) => tx.lt ?? 0));
     } catch { /* use 0 */ }
     const deadline = Date.now() + POLL_MAX_WAIT_MS;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       try {
         const { transactions } = await fetchRecentTransactions(contract, wallet);
-        const newer = transactions.find((t) => (t.lt ?? 0) > lastLt);
+        const newer = transactions.find((tx) => (tx.lt ?? 0) > lastLt);
         if (newer?.hash) {
-          await submitScore(wallet, newer.hash, "mainnet");
+          await submitScore(wallet, newer.hash, "testnet");
           return true;
         }
       } catch { /* continue */ }
@@ -161,7 +154,6 @@ export function NumberLobby({
     return false;
   }
 
-  // ── Start round ──
   async function handleStartRound() {
     if (!canStart || !selectedDir) return;
     setTxError("");
@@ -169,39 +161,12 @@ export function NumberLobby({
     const amt = parseFloat(amountTon) || 0.5;
     const odds = calcOdds(dir, threshold) ?? "5.00";
 
-    if (DEV_MOCK) {
-      startRollingAnimation((roll) => {
-        const win = dir === "high" ? roll >= threshold : roll <= threshold;
-        const amountNano = toNano(String(amt));
-        const hc = calcHitCount(dir, threshold);
-        const bps = win ? (PAYOUT_BPS[hc] ?? 50000) : 0;
-        const payoutNano = win ? (amountNano * BigInt(bps)) / 10000n : 0n;
-        const rebateNano = win ? 0n : (amountNano * 50n) / 10000n;
-        const payoutTon = (Number(payoutNano) / 1e9).toFixed(4);
-        const rebateTon = (Number(rebateNano) / 1e9).toFixed(4);
-
-        const r: RoundResult = { win, roll, direction: dir, threshold, amountTon: String(amt), odds, payoutTon, rebateTon };
-        pendingResult.current = r;
-        setResult(r);
-        setShowResult(true);
-
-        void submitRound({
-          wallet, direction: dir === "high" ? 1 : 0, threshold,
-          amountNano: amountNano.toString(), roll, result: win ? 1 : 0,
-          payoutNano: payoutNano.toString(), rebateNano: rebateNano.toString()
-        });
-      });
-      return;
-    }
-
-    // Real chain flow: send tx first, then roll animation concurrently
     const dirNum: 0 | 1 = dir === "low" ? 0 : 1;
     const amountNano = toNano(String(amt));
     const payload = buildPlayRoundPayload(dirNum, threshold, amountNano, Math.floor(Date.now() / 1000));
     try {
       await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        // 0.05 TON gas: forwarded through DiceGameV2 → DepositVault → PrizePool
         messages: [{ address: contract, amount: toNano("0.05").toString(), payload }]
       });
     } catch (e) {
@@ -222,11 +187,18 @@ export function NumberLobby({
       pendingResult.current = r;
       setResult(r);
       setShowResult(true);
+
+      void submitRound({
+        wallet, direction: dirNum, threshold,
+        amountNano: amountNano.toString(), roll, result: win ? 1 : 0,
+        payoutNano: (win ? BigInt(Math.round(payout * 1e9)) : 0n).toString(),
+        rebateNano: (win ? 0n : BigInt(Math.round(rebate * 1e9))).toString()
+      });
+
       await pollAndSubmitScore();
     });
   }
 
-  // ── Confirm modal → update balance & score (mock) ──
   function handleConfirm() {
     setShowResult(false);
     const r = pendingResult.current;
@@ -245,27 +217,8 @@ export function NumberLobby({
     pendingResult.current = null;
   }
 
-  // ── Deposit (real chain) ──
-  async function handleDeposit(amountStr: string) {
-    const v = Number(amountStr);
-    if (!Number.isFinite(v) || v < 0.01) return;
-    if (DEV_MOCK) {
-      onBalanceChange((balanceNum + v).toFixed(4));
-      return;
-    }
-    if (!contract || !wallet) return;
-    try {
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [{ address: contract, amount: toNano(String(v)).toString(), payload: buildDepositPayload() }]
-      });
-    } catch (e) { setTxError(e instanceof Error ? e.message : "充值失败"); }
-  }
-
-  // ── Withdraw balance (real chain) ──
   async function handleWithdrawBalance() {
     if (balanceNum <= 0) return;
-    if (DEV_MOCK) { onBalanceChange("0.0000"); return; }
     if (!contract || !wallet) return;
     try {
       await tonConnectUI.sendTransaction({
@@ -275,10 +228,8 @@ export function NumberLobby({
     } catch (e) { setTxError(e instanceof Error ? e.message : "提现余额失败"); }
   }
 
-  // ── Claim winnings (real chain) ──
   async function handleClaim() {
     if (Number(claimableTon) <= 0) return;
-    if (DEV_MOCK) { onClaimableChange("0.0000"); return; }
     if (!contract || !wallet) return;
     try {
       await tonConnectUI.sendTransaction({
@@ -288,10 +239,8 @@ export function NumberLobby({
     } catch (e) { setTxError(e instanceof Error ? e.message : "提现奖金失败"); }
   }
 
-  // expose to parent via props (deposit/withdraw/claim called from ProfileSheet)
   useEffect(() => {
-    // attach to window for ProfileSheet callbacks
-    (window as unknown as Record<string, unknown>).__lobbyHandlers = { handleDeposit, handleWithdrawBalance, handleClaim };
+    (window as unknown as Record<string, unknown>).__lobbyHandlers = { handleWithdrawBalance, handleClaim };
   });
 
   const currentOdds = selectedDir ? calcOdds(selectedDir, threshold) : calcOdds("high", threshold);
@@ -340,7 +289,6 @@ export function NumberLobby({
             transition: "border-color 0.3s, box-shadow 0.3s"
           }}
         >
-          {/* Glow overlay */}
           <div
             className="absolute inset-0 rounded-[20px] pointer-events-none"
             style={{
@@ -350,7 +298,6 @@ export function NumberLobby({
             }}
           />
 
-          {/* Header */}
           <div className="flex justify-between items-center relative z-10">
             <span className="text-[12px] uppercase tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>{t.targetNumber}</span>
             <div className="flex items-baseline gap-[6px]">
@@ -369,7 +316,6 @@ export function NumberLobby({
             </div>
           </div>
 
-          {/* Slider */}
           <div className="relative z-10">
             <div className="flex justify-between px-[2px] mb-[10px]">
               {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -398,7 +344,6 @@ export function NumberLobby({
                 className={isRolling ? "rolling" : ""}
                 style={{ background: sliderStyle(isRolling ? displayNum : threshold) }}
               />
-              {/* Scan line */}
               {isRolling && (
                 <div
                   className="absolute top-[0px] h-1 rounded pointer-events-none"
@@ -411,7 +356,6 @@ export function NumberLobby({
             </div>
           </div>
 
-          {/* Threshold buttons */}
           <div className="grid grid-cols-6 gap-[6px] relative z-10">
             {[1, 2, 3, 4, 5, 6].map((v) => {
               const isEdge = v === 1 || v === 6;
@@ -498,7 +442,6 @@ export function NumberLobby({
                 {v}
               </button>
             ))}
-            {/* ×2 button */}
             <button
               type="button"
               disabled={isRolling}
@@ -637,7 +580,6 @@ export function NumberLobby({
         )}
       </div>
 
-      {/* Result modal */}
       {result && (
         <ResultModal
           show={showResult}

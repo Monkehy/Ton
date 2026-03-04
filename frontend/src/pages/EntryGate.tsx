@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import WebApp from "@twa-dev/sdk";
-import { TonConnectButton, useTonAddress, useTonWallet } from "@tonconnect/ui-react";
-import { useTonConnectUI } from "@tonconnect/ui-react";
+import { TonConnectButton, useTonAddress, useTonWallet, useTonConnectUI } from "@tonconnect/ui-react";
 import { toNano } from "@ton/core";
-import { fetchUserStatus, type UserStatus, DEV_MOCK_WALLET } from "../lib/api";
+import { fetchUserStatus, type UserStatus } from "../lib/api";
 import { 
   buildDepositPayload, 
   buildWithdrawBalancePayload, 
@@ -18,11 +17,10 @@ import { LOCALES } from "../i18n/locales";
 
 export function EntryGate() {
   const { t, locale, setLocale, locales } = useT();
-  const realWallet = useTonAddress();
+  const wallet = useTonAddress();
   const tonWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
-  const wallet = DEV_MOCK_WALLET || realWallet;
-  const connected = DEV_MOCK_WALLET ? true : tonWallet !== null;
+  const connected = tonWallet !== null;
 
   const [view, setView] = useState<"main" | "history">("main");
   const [status, setStatus] = useState<UserStatus | null>(null);
@@ -36,7 +34,7 @@ export function EntryGate() {
   const isRestricted = status?.mode === "MODE_CLEAN";
 
   // Balance state lives here so header, lobby and profile stay in sync
-  const [balanceTon, setBalanceTon] = useState(DEV_MOCK_WALLET ? "10.0000" : "0.0000");
+  const [balanceTon, setBalanceTon] = useState("0.0000");
   const [claimableTon, setClaimableTon] = useState("0.0000");
 
   // Animate balance changes
@@ -77,18 +75,11 @@ export function EntryGate() {
   const DEPOSIT_VAULT_FALLBACK = import.meta.env.VITE_DEPOSIT_VAULT_ADDRESS || "";
   const depositVaultAddress = status?.depositVaultAddress || DEPOSIT_VAULT_FALLBACK;
 
-  // ── Deposit handler → sends to DepositVault ──
   const handleDeposit = async (amountStr: string) => {
     const v = Number(amountStr);
     if (!Number.isFinite(v) || v < 0.01) {
       throw new Error("Amount must be at least 0.01 TON");
     }
-
-    if (DEV_MOCK_WALLET) {
-      setBalanceTon((Number(balanceTon) + v).toFixed(4));
-      return;
-    }
-
     if (!wallet) throw new Error("Wallet not connected");
     if (!depositVaultAddress) throw new Error("DepositVault address not configured");
 
@@ -102,16 +93,9 @@ export function EntryGate() {
     });
   };
 
-  // ── Withdraw handler → sends to DepositVault ──
   const handleWithdrawBalance = async () => {
     const balanceNum = Number(balanceTon);
     if (balanceNum <= 0) throw new Error("No balance to withdraw");
-
-    if (DEV_MOCK_WALLET) {
-      setBalanceTon("0.0000");
-      return;
-    }
-
     if (!wallet) throw new Error("Wallet not connected");
     if (!depositVaultAddress) throw new Error("DepositVault address not configured");
 
@@ -119,19 +103,13 @@ export function EntryGate() {
       validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [{
         address: depositVaultAddress,
-        amount: toNano("0.05").toString(), // gas fee
+        amount: toNano("0.05").toString(),
         payload: buildWithdrawBalancePayload(toNano(String(balanceNum)))
       }]
     });
   };
 
-  // ── Claim handler → also sends to DepositVault (same as withdraw) ──
   const handleClaim = async () => {
-    if (DEV_MOCK_WALLET) {
-      setClaimableTon("0.0000");
-      return;
-    }
-
     if (!wallet) throw new Error("Wallet not connected");
     if (!depositVaultAddress) throw new Error("DepositVault address not configured");
 
@@ -139,7 +117,7 @@ export function EntryGate() {
       validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [{
         address: depositVaultAddress,
-        amount: toNano("0.05").toString(), // gas fee
+        amount: toNano("0.05").toString(),
         payload: buildWithdrawBalancePayload(toNano(String(claimableTon)))
       }]
     });
@@ -374,9 +352,7 @@ export function EntryGate() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (!DEV_MOCK_WALLET) {
-                    await tonConnectUI.disconnect();
-                  }
+                  await tonConnectUI.disconnect();
                   setShowDisconnectModal(false);
                 }}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold"

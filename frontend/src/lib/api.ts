@@ -30,37 +30,6 @@ const API_BASE =
     ? window.location.origin
     : (import.meta.env.VITE_API_BASE ?? "http://localhost:3001");
 
-// ---------------------------------------------------------------------------
-// DEV MOCK — set VITE_DEV_MOCK=true in frontend/.env to bypass real network
-// ---------------------------------------------------------------------------
-const DEV_MOCK = import.meta.env.VITE_DEV_MOCK === "true";
-export const DEV_MOCK_WALLET = DEV_MOCK
-  ? "UQB3J9IorzTiB6Uo17hzalUy_DcLcRZIpy6hww966Ziki5r8"
-  : "";
-
-const DEV_MOCK_STATUS: UserStatus = {
-  wallet: "UQB3J9IorzTiB6Uo17hzalUy_DcLcRZIpy6hww966Ziki5r8",
-  mode: "MODE_GAMING",
-  modeReason: "dev mock",
-  pauseState: false,
-  maxAmountTon: "5.0000",
-  score: "0.0000",
-  level: "BRONZE",
-  balanceTon: "10.0000",
-  claimableTon: "0.0000",
-  contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS ?? "",
-  contract: {
-    paused: false,
-    minAmountTon: "0.1000",
-    reserveFloorTon: "1000.0000",
-    roundSeq: "0",
-    lastRoll: 0,
-    lastResult: 0,
-    lastCreditTon: "0.0000"
-  },
-  rateLimit: { windowSec: 10, maxRequests: 100 }
-};
-
 async function checkRes(res: Response, context: string, url: string): Promise<void> {
   if (res.ok) return;
   const status = res.status;
@@ -72,7 +41,6 @@ async function checkRes(res: Response, context: string, url: string): Promise<vo
 }
 
 export async function fetchUserStatus(wallet = ""): Promise<UserStatus> {
-  if (DEV_MOCK) return { ...DEV_MOCK_STATUS, wallet: wallet || DEV_MOCK_STATUS.wallet };
   const url = new URL("/api/user/status", API_BASE);
   if (wallet) {
     url.searchParams.set("wallet", wallet);
@@ -112,7 +80,6 @@ export interface SubmitRoundParams {
 }
 
 export async function submitRound(params: SubmitRoundParams): Promise<void> {
-  if (!DEV_MOCK) return; // only used in mock mode
   try {
     await fetch(`${API_BASE}/api/rounds/submit`, {
       method: "POST",
@@ -124,7 +91,7 @@ export async function submitRound(params: SubmitRoundParams): Promise<void> {
   }
 }
 
-export async function submitScore(wallet: string, txHash: string, network: "mainnet" = "mainnet"): Promise<{ ok: boolean; status: string }> {
+export async function submitScore(wallet: string, txHash: string, network: "mainnet" | "testnet" = "testnet"): Promise<{ ok: boolean; status: string }> {
   const res = await fetch(`${API_BASE}/api/score/submit`, {
     method: "POST",
     headers: {
