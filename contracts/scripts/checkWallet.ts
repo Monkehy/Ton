@@ -2,7 +2,7 @@
  * 诊断脚本 - 检查钱包状态
  * NETWORK=testnet TONCENTER_API_KEY="xxx" MNEMONIC="24 words" npx ts-node scripts/checkWallet.ts
  */
-import { TonClient, WalletContractV4 } from "@ton/ton";
+import { TonClient, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 
 async function main() {
@@ -18,35 +18,32 @@ async function main() {
 
   const client = new TonClient({ endpoint, apiKey: apiKey || undefined });
   const kp = await mnemonicToPrivateKey(mnemonicStr.trim().split(/\s+/));
-  const w = WalletContractV4.create({ publicKey: kp.publicKey, workchain: 0 });
 
-  console.log("Wallet (bounceable)    :", w.address.toString({ bounceable: true, testOnly: network === "testnet" }));
-  console.log("Wallet (non-bounceable):", w.address.toString({ bounceable: false, testOnly: network === "testnet" }));
+  const wallets = [
+    { name: "v4r2", contract: WalletContractV4.create({ publicKey: kp.publicKey, workchain: 0 }) },
+    { name: "v3r2", contract: WalletContractV3R2.create({ publicKey: kp.publicKey, workchain: 0 }) },
+  ];
 
-  try {
-    const bal = await client.getBalance(w.address);
-    const state = await client.getContractState(w.address);
-    console.log("Balance:", Number(bal) / 1e9, "TON");
-    console.log("State  :", state.state);
-
-    if (state.state === "uninitialized") {
-      if (bal > 0n) {
-        console.log("\n✅ Wallet has balance and will be activated on first send.");
-        console.log("   You can run: npm run link:contracts");
-      } else {
-        console.log("\n⚠️  Wallet is uninitialized on testnet!");
-        console.log("   Send some testnet TON to the address above, then retry.");
-        console.log("   Faucet: https://t.me/testgiver_ton_bot");
-      }
-    } else if (bal < 200000000n) {
-      console.log("\n⚠️  Low balance! Need at least 0.2 TON. Use faucet: https://t.me/testgiver_ton_bot");
-    } else {
-      console.log("\n✅ Wallet is ready. You can run: npm run link:contracts");
+  console.log("\n🔍 Checking all wallet versions:\n");
+  for (const { name, contract } of wallets) {
+    const addr = contract.address.toString({ bounceable: false, testOnly: network === "testnet" });
+    const addrEQ = contract.address.toString({ bounceable: true, testOnly: network === "testnet" });
+    try {
+      const bal = await client.getBalance(contract.address);
+      const state = await client.getContractState(contract.address);
+      const mark = state.state === "active" ? "✅" : state.state === "uninitialized" && bal > 0n ? "🟡" : "⬜";
+      console.log(`${mark} [${name}]`);
+      console.log(`   non-bounceable: ${addr}`);
+      console.log(`   bounceable    : ${addrEQ}`);
+      console.log(`   balance: ${Number(bal) / 1e9} TON  |  state: ${state.state}`);
+    } catch {
+      console.log(`⬜ [${name}] ${addr} — cannot read`);
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.log("Error:", msg);
+    console.log();
   }
+
+  console.log("👉 The owner of DepositVault/PrizePool is: 0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns");
+  console.log("   Find the version above whose non-bounceable address matches.");
 }
 
 main().catch(console.error);

@@ -5,7 +5,7 @@
  * NETWORK=testnet MNEMONIC="your 24 words" TONCENTER_API_KEY="xxx" npx ts-node scripts/linkContracts.ts
  */
 
-import { Address, toNano, beginCell, TonClient, WalletContractV4, internal } from "@ton/ton";
+import { Address, toNano, beginCell, TonClient, WalletContractV4, WalletContractV3R2, internal } from "@ton/ton";
 import { mnemonicToPrivateKey } from "@ton/crypto";
 
 // ── 已部署的合约地址 ───────────────────────────────────────────
@@ -66,21 +66,24 @@ async function main() {
   const mnemonic = mnemonicStr.trim().split(/\s+/);
   const keyPair = await mnemonicToPrivateKey(mnemonic);
 
-  // Try both wallet versions to find the right one
-  const walletV4R2 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
-  console.log(`\n🔍 Checking wallet addresses:`);
-  console.log(`   v4r2: ${walletV4R2.address.toString()}`);
+  // Check all wallet versions and pick the one matching the owner address
+  const OWNER = "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns";
+  const candidates = [
+    { name: "v4r2", contract: WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 }) },
+    { name: "v3r2", contract: WalletContractV3R2.create({ publicKey: keyPair.publicKey, workchain: 0 }) },
+  ];
 
-  // Use the address that has balance
-  let walletContract = walletV4R2;
-  try {
-    const bal = await withRetry(() => client.getBalance(walletV4R2.address));
-    console.log(`   v4r2 balance: ${Number(bal) / 1e9} TON`);
-    if (bal > 0n) {
-      walletContract = walletV4R2;
-      console.log(`✅ Using v4r2`);
+  let walletContract = candidates[0].contract;
+  console.log("\n🔍 Finding matching wallet version...");
+  for (const { name, contract } of candidates) {
+    const addr = contract.address.toString({ bounceable: false, testOnly: true });
+    console.log(`   [${name}]: ${addr}`);
+    if (addr === OWNER) {
+      walletContract = contract;
+      console.log(`   ✅ Matched! Using ${name}`);
+      break;
     }
-  } catch { /* continue */ }
+  }
 
   const wallet = client.open(walletContract);
 
