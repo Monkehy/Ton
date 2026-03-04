@@ -5,8 +5,8 @@
  * NETWORK=testnet MNEMONIC="your 24 words" TONCENTER_API_KEY="xxx" npx ts-node scripts/linkContracts.ts
  */
 
-import { Address, toNano, beginCell, TonClient, WalletContractV4, WalletContractV3R2, internal } from "@ton/ton";
-import { mnemonicToPrivateKey, mnemonicToWalletKey } from "@ton/crypto";
+import { Address, toNano, beginCell, TonClient, WalletContractV4, WalletContractV3R2, WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { mnemonicToPrivateKey, mnemonicToWalletKey, KeyPair } from "@ton/crypto";
 
 // ── 已部署的合约地址 ───────────────────────────────────────────
 const CONTRACTS = {
@@ -70,14 +70,17 @@ async function main() {
   // Find which derivation + version matches the owner address
   const OWNER = "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns";
   const candidates = [
-    { name: "v4r2/direct",    kp: kpDirect,    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
+    { name: "v5r1/tonkeeper", kp: kpTonkeeper, contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
+    { name: "v5r1/direct",    kp: kpDirect,    contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
     { name: "v4r2/tonkeeper", kp: kpTonkeeper, contract: WalletContractV4.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v3r2/direct",    kp: kpDirect,    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
+    { name: "v4r2/direct",    kp: kpDirect,    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
     { name: "v3r2/tonkeeper", kp: kpTonkeeper, contract: WalletContractV3R2.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
+    { name: "v3r2/direct",    kp: kpDirect,    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
   ];
 
   let selectedKp = kpDirect;
-  let walletContract = candidates[0].contract;
+  let walletContract: WalletContractV5R1 | WalletContractV4 | WalletContractV3R2 = candidates[0].contract;
+  let matchedName = candidates[0].name;
   console.log("\n🔍 Finding matching wallet version...");
   for (const { name, kp, contract } of candidates) {
     const addr = contract.address.toString({ bounceable: false, testOnly: true });
@@ -85,13 +88,34 @@ async function main() {
     if (addr === OWNER) {
       selectedKp = kp;
       walletContract = contract;
+      matchedName = name;
       console.log(`   ✅ Matched!`);
       break;
     }
   }
+  console.log(`\n📌 Using: ${matchedName}`);
 
   const keyPair = selectedKp;
   const wallet = client.open(walletContract);
+
+  // 统一发送函数，兼容 V5R1 / V4 / V3R2
+  async function sendMsg(seqno: number, body: import("@ton/core").Cell, to: Address) {
+    const msg = internal({ to, value: toNano("0.05"), body });
+    if (walletContract instanceof WalletContractV5R1) {
+      await (wallet as ReturnType<typeof client.open<WalletContractV5R1>>).sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        sendMode: SendMode.PAY_GAS_SEPARATELY,
+        messages: [msg],
+      });
+    } else {
+      await (wallet as ReturnType<typeof client.open<WalletContractV4>>).sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [msg],
+      });
+    }
+  }
 
   console.log(`🔑 Wallet: ${walletContract.address.toString()}`);
   console.log(`🌐 Network: ${network}`);
@@ -119,34 +143,14 @@ async function main() {
   // ── Send to DepositVault ──────────────────────────────────────
   console.log("\n📤 [1/2] Sending SetGameContract to DepositVault...");
   const seqno1 = await withRetry(() => wallet.getSeqno());
-  await withRetry(() => wallet.sendTransfer({
-    seqno: seqno1,
-    secretKey: keyPair.secretKey,
-    messages: [
-      internal({
-        to: Address.parse(CONTRACTS.depositVault),
-        value: toNano("0.05"),
-        body: setGameContractBody,
-      }),
-    ],
-  }));
+  await withRetry(() => sendMsg(seqno1, setGameContractBody, Address.parse(CONTRACTS.depositVault)));
   console.log("   ✅ Sent! Waiting 20s for confirmation...");
   await sleep(20000);
 
   // ── Send to PrizePool ─────────────────────────────────────────
   console.log("📤 [2/2] Sending SetGameContract to PrizePool...");
   const seqno2 = await withRetry(() => wallet.getSeqno());
-  await withRetry(() => wallet.sendTransfer({
-    seqno: seqno2,
-    secretKey: keyPair.secretKey,
-    messages: [
-      internal({
-        to: Address.parse(CONTRACTS.prizePool),
-        value: toNano("0.05"),
-        body: setGameContractBody,
-      }),
-    ],
-  }));
+  await withRetry(() => sendMsg(seqno2, setGameContractBody, Address.parse(CONTRACTS.prizePool)));
   console.log("   ✅ Sent!");
 
   console.log("\n🎉 Done! Verify on explorer:");

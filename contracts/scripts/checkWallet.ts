@@ -2,7 +2,7 @@
  * 诊断脚本 - 检查钱包状态
  * NETWORK=testnet TONCENTER_API_KEY="xxx" MNEMONIC="24 words" npm run check:wallet
  */
-import { TonClient, WalletContractV4, WalletContractV3R2 } from "@ton/ton";
+import { TonClient, WalletContractV4, WalletContractV3R2, WalletContractV5R1 } from "@ton/ton";
 import { mnemonicToPrivateKey, mnemonicToWalletKey } from "@ton/crypto";
 
 async function main() {
@@ -24,10 +24,12 @@ async function main() {
   const kpTonkeeper = await mnemonicToWalletKey(words);
 
   const candidates = [
-    { name: "v4r2 (direct)",    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
+    { name: "v5r1 (tonkeeper)", contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
+    { name: "v5r1 (direct)",    contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
     { name: "v4r2 (tonkeeper)", contract: WalletContractV4.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v3r2 (direct)",    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
+    { name: "v4r2 (direct)",    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
     { name: "v3r2 (tonkeeper)", contract: WalletContractV3R2.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
+    { name: "v3r2 (direct)",    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
   ];
 
   const TARGET = "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns";
