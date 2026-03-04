@@ -27,8 +27,10 @@ export function buildDepositPayload(): string {
 }
 
 /**
- * PlayRound: send to DiceGameV2, no value attached (balance deducted inside contract).
- * direction: 0 = <=T, 1 = >=T; threshold: 1-6; amount in nanoton.
+ * PlayRound: send to DiceGameV2.
+ * Layout matches Tact-generated storePlayRound:
+ *   b_0: op(32) + direction(257) + threshold(257) + amount(257) = 803 bits
+ *   b_1 (ref): clientNonce(257)
  */
 export function buildPlayRoundPayload(
   direction: 0 | 1,
@@ -36,13 +38,18 @@ export function buildPlayRoundPayload(
   amountNano: bigint,
   clientNonce: number
 ): string {
+  const b1 = beginCell()
+    .storeInt(BigInt(clientNonce), 257)
+    .endCell();
+
   const cell = beginCell()
     .storeUint(OP_PLAY_ROUND, 32)
     .storeInt(direction, 257)
     .storeInt(threshold, 257)
     .storeInt(amountNano, 257)
-    .storeInt(BigInt(clientNonce), 257)
+    .storeRef(b1)
     .endCell();
+
   return toBase64(cell.toBoc());
 }
 
