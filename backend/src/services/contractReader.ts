@@ -104,17 +104,23 @@ export async function readContractSnapshot(wallet?: string): Promise<ContractSna
     if (depositVaultAddr && wallet) {
       try {
         const vaultAddress = Address.parse(depositVaultAddr);
-        const walletAddr = Address.parse(wallet);
+        // Normalize wallet address — strip workchain prefix (0Q/EQ) and parse raw
+        let walletAddr: Address;
+        try {
+          walletAddr = Address.parse(wallet);
+        } catch {
+          // Try with EQ prefix if 0Q fails
+          walletAddr = Address.parse(wallet.replace(/^0Q/, "EQ"));
+        }
         const tb = new TupleBuilder();
         tb.writeAddress(walletAddr);
 
-        // balanceOf(addr) → Int (user's deposit balance in DepositVault)
         const balanceRes = await client.runMethod(vaultAddress, "balanceOf", tb.build());
         const userBalance = balanceRes.stack.readBigNumber();
         balanceTon = nanoToTonText(userBalance);
-        // DepositVault doesn't have separate claimable; winnings go back to balance
         claimableTon = "0.0000";
-      } catch {
+      } catch (e) {
+        console.error("[contractReader] balanceOf failed:", e instanceof Error ? e.message : e);
         balanceTon = "0.0000";
         claimableTon = "0.0000";
       }
