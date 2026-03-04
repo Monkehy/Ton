@@ -201,7 +201,8 @@ export function NumberLobby({
     try {
       await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [{ address: contract, amount: "0", payload }]
+        // 0.05 TON gas: forwarded through DiceGameV2 → DepositVault → PrizePool
+        messages: [{ address: contract, amount: toNano("0.05").toString(), payload }]
       });
     } catch (e) {
       setTxError(e instanceof Error ? e.message : "交易被取消或失败");
@@ -269,7 +270,7 @@ export function NumberLobby({
     try {
       await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [{ address: contract, amount: "0", payload: buildWithdrawBalancePayload(toNano(String(balanceNum))) }]
+        messages: [{ address: contract, amount: toNano("0.05").toString(), payload: buildWithdrawBalancePayload(toNano(String(balanceNum))) }]
       });
     } catch (e) { setTxError(e instanceof Error ? e.message : "提现余额失败"); }
   }
@@ -282,7 +283,7 @@ export function NumberLobby({
     try {
       await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [{ address: contract, amount: "0", payload: buildClaimPayload(0n) }]
+        messages: [{ address: contract, amount: toNano("0.05").toString(), payload: buildClaimPayload(0n) }]
       });
     } catch (e) { setTxError(e instanceof Error ? e.message : "提现奖金失败"); }
   }
