@@ -19,36 +19,58 @@ async function main() {
   const client = new TonClient({ endpoint, apiKey: apiKey || undefined });
   const words = mnemonicStr.trim().split(/\s+/);
 
-  // 两种派生方式：直接派生 vs Tonkeeper 风格
   const kpDirect    = await mnemonicToPrivateKey(words);
   const kpTonkeeper = await mnemonicToWalletKey(words);
 
-  const candidates = [
-    { name: "v5r1 (tonkeeper)", contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v5r1 (direct)",    contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
-    { name: "v4r2 (tonkeeper)", contract: WalletContractV4.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v4r2 (direct)",    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
-    { name: "v3r2 (tonkeeper)", contract: WalletContractV3R2.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v3r2 (direct)",    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
+  // W5 地址与 networkGlobalId 有关：mainnet=-239, testnet=-3
+  // Tonkeeper 连接 mainnet 时用 -239，即使在 testnet 浏览器上显示也可能是 mainnet 地址
+  const globalIds = [
+    { label: "mainnet(-239)", id: -239 },
+    { label: "testnet(-3)",   id: -3   },
   ];
+
+  const candidates: { name: string; contract: { address: { toString(opt: object): string } } & object }[] = [];
+
+  for (const { label, id } of globalIds) {
+    candidates.push({
+      name: `v5r1/tonkeeper/${label}`,
+      contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0, walletId: { networkGlobalId: id } }),
+    });
+    candidates.push({
+      name: `v5r1/direct/${label}`,
+      contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey, workchain: 0, walletId: { networkGlobalId: id } }),
+    });
+  }
+
+  // V4 / V3 不受 globalId 影响
+  candidates.push({ name: "v4r2/tonkeeper", contract: WalletContractV4.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) });
+  candidates.push({ name: "v4r2/direct",    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) });
+  candidates.push({ name: "v3r2/tonkeeper", contract: WalletContractV3R2.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) });
+  candidates.push({ name: "v3r2/direct",    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) });
 
   const TARGET = "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns";
   console.log(`\n🎯 Looking for owner: ${TARGET}\n`);
 
   for (const { name, contract } of candidates) {
-    const addr    = contract.address.toString({ bounceable: false, testOnly: network === "testnet" });
-    const addrEQ  = contract.address.toString({ bounceable: true,  testOnly: network === "testnet" });
-    const match   = addr === TARGET ? "  ← ✅ MATCH!" : "";
+    // 尝试两种地址格式（testOnly true/false）
+    const addrTest = (contract as WalletContractV4).address.toString({ bounceable: false, testOnly: true });
+    const addrMain = (contract as WalletContractV4).address.toString({ bounceable: false, testOnly: false });
+    const matchTest = addrTest === TARGET ? "  ← ✅ MATCH (testOnly)" : "";
+    const matchMain = addrMain === TARGET ? "  ← ✅ MATCH (mainnet fmt)" : "";
+    const match = matchTest || matchMain;
+
     try {
-      const bal   = await client.getBalance(contract.address);
-      const state = await client.getContractState(contract.address);
+      const bal   = await client.getBalance((contract as WalletContractV4).address);
+      const state = await client.getContractState((contract as WalletContractV4).address);
       const mark  = state.state === "active" ? "✅" : bal > 0n ? "🟡" : "⬜";
       console.log(`${mark} [${name}]${match}`);
-      console.log(`   non-bounceable: ${addr}`);
-      console.log(`   bounceable    : ${addrEQ}`);
+      console.log(`   testnet fmt : ${addrTest}`);
+      console.log(`   mainnet fmt : ${addrMain}`);
       console.log(`   balance: ${Number(bal) / 1e9} TON  |  state: ${state.state}\n`);
     } catch {
-      console.log(`⬜ [${name}] ${addr}${match}  (cannot read)\n`);
+      console.log(`⬜ [${name}]${match}`);
+      console.log(`   testnet fmt : ${addrTest}`);
+      console.log(`   mainnet fmt : ${addrMain}\n`);
     }
   }
 }
