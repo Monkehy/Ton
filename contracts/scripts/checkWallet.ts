@@ -30,9 +30,14 @@ async function main() {
     console.log("State  :", state.state);
 
     if (state.state === "uninitialized") {
-      console.log("\n⚠️  Wallet is uninitialized on testnet!");
-      console.log("   Send some testnet TON to the address above, then retry.");
-      console.log("   Faucet: https://t.me/testgiver_ton_bot");
+      if (bal > 0n) {
+        console.log("\n✅ Wallet has balance and will be activated on first send.");
+        console.log("   You can run: npm run link:contracts");
+      } else {
+        console.log("\n⚠️  Wallet is uninitialized on testnet!");
+        console.log("   Send some testnet TON to the address above, then retry.");
+        console.log("   Faucet: https://t.me/testgiver_ton_bot");
+      }
     } else if (bal < 200000000n) {
       console.log("\n⚠️  Low balance! Need at least 0.2 TON. Use faucet: https://t.me/testgiver_ton_bot");
     } else {

@@ -89,16 +89,16 @@ async function main() {
 
   // Check wallet status first
   try {
-    const balance = await client.getBalance(walletContract.address);
+    const balance = await withRetry(() => client.getBalance(walletContract.address));
     console.log(`💰 Wallet balance: ${Number(balance) / 1e9} TON`);
-    if (balance < toNano("0.2")) {
-      console.error("❌ Insufficient balance! Need at least 0.2 TON for gas.");
+    if (balance < toNano("0.15")) {
+      console.error("❌ Insufficient balance! Need at least 0.15 TON for gas.");
       console.error(`   Get testnet TON from: https://t.me/testgiver_ton_bot`);
       process.exit(1);
     }
+    console.log("✅ Balance OK, proceeding...");
   } catch (e) {
     console.error("❌ Cannot read wallet state:", e instanceof Error ? e.message : e);
-    console.error("   Make sure the wallet is deployed (has had at least one transaction)");
     process.exit(1);
   }
 
