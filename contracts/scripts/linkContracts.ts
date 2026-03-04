@@ -6,7 +6,7 @@
  */
 
 import { Address, toNano, beginCell, TonClient, WalletContractV4, WalletContractV3R2, internal } from "@ton/ton";
-import { mnemonicToPrivateKey } from "@ton/crypto";
+import { mnemonicToPrivateKey, mnemonicToWalletKey } from "@ton/crypto";
 
 // ── 已部署的合约地址 ───────────────────────────────────────────
 const CONTRACTS = {
@@ -64,27 +64,33 @@ async function main() {
     throw new Error("Max retries exceeded");
   }
   const mnemonic = mnemonicStr.trim().split(/\s+/);
-  const keyPair = await mnemonicToPrivateKey(mnemonic);
+  const kpDirect    = await mnemonicToPrivateKey(mnemonic);
+  const kpTonkeeper = await mnemonicToWalletKey(mnemonic);
 
-  // Check all wallet versions and pick the one matching the owner address
+  // Find which derivation + version matches the owner address
   const OWNER = "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns";
   const candidates = [
-    { name: "v4r2", contract: WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 }) },
-    { name: "v3r2", contract: WalletContractV3R2.create({ publicKey: keyPair.publicKey, workchain: 0 }) },
+    { name: "v4r2/direct",    kp: kpDirect,    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
+    { name: "v4r2/tonkeeper", kp: kpTonkeeper, contract: WalletContractV4.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
+    { name: "v3r2/direct",    kp: kpDirect,    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
+    { name: "v3r2/tonkeeper", kp: kpTonkeeper, contract: WalletContractV3R2.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
   ];
 
+  let selectedKp = kpDirect;
   let walletContract = candidates[0].contract;
   console.log("\n🔍 Finding matching wallet version...");
-  for (const { name, contract } of candidates) {
+  for (const { name, kp, contract } of candidates) {
     const addr = contract.address.toString({ bounceable: false, testOnly: true });
     console.log(`   [${name}]: ${addr}`);
     if (addr === OWNER) {
+      selectedKp = kp;
       walletContract = contract;
-      console.log(`   ✅ Matched! Using ${name}`);
+      console.log(`   ✅ Matched!`);
       break;
     }
   }
 
+  const keyPair = selectedKp;
   const wallet = client.open(walletContract);
 
   console.log(`🔑 Wallet: ${walletContract.address.toString()}`);
