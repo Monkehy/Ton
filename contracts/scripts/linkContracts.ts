@@ -70,12 +70,14 @@ async function main() {
   // Find which derivation + version matches the owner address
   const OWNER = "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns";
   const candidates = [
-    { name: "v5r1/tonkeeper", kp: kpTonkeeper, contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v5r1/direct",    kp: kpDirect,    contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
+    { name: "v5r1/tonkeeper/testnet(-3)", kp: kpTonkeeper, contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0, walletId: { networkGlobalId: -3 } }) },
+    { name: "v5r1/direct/testnet(-3)",    kp: kpDirect,    contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey,    workchain: 0, walletId: { networkGlobalId: -3 } }) },
+    { name: "v5r1/tonkeeper/mainnet",     kp: kpTonkeeper, contract: WalletContractV5R1.create({ publicKey: kpTonkeeper.publicKey, workchain: 0, walletId: { networkGlobalId: -239 } }) },
+    { name: "v5r1/direct/mainnet",        kp: kpDirect,    contract: WalletContractV5R1.create({ publicKey: kpDirect.publicKey,    workchain: 0, walletId: { networkGlobalId: -239 } }) },
     { name: "v4r2/tonkeeper", kp: kpTonkeeper, contract: WalletContractV4.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v4r2/direct",    kp: kpDirect,    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
+    { name: "v4r2/direct",    kp: kpDirect,    contract: WalletContractV4.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
     { name: "v3r2/tonkeeper", kp: kpTonkeeper, contract: WalletContractV3R2.create({ publicKey: kpTonkeeper.publicKey, workchain: 0 }) },
-    { name: "v3r2/direct",    kp: kpDirect,    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey, workchain: 0 }) },
+    { name: "v3r2/direct",    kp: kpDirect,    contract: WalletContractV3R2.create({ publicKey: kpDirect.publicKey,    workchain: 0 }) },
   ];
 
   let selectedKp = kpDirect;
@@ -84,7 +86,6 @@ async function main() {
   console.log("\n🔍 Finding matching wallet version...");
   for (const { name, kp, contract } of candidates) {
     const addr = contract.address.toString({ bounceable: false, testOnly: true });
-    console.log(`   [${name}]: ${addr}`);
     if (addr === OWNER) {
       selectedKp = kp;
       walletContract = contract;
