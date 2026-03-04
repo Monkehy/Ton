@@ -8,6 +8,7 @@
     "deploy:mainnet": "blueprint run deployAll --mainnet",
     "deploy:direct": "ts-node scripts/deployDirect.ts",
     "link:contracts": "ts-node scripts/linkContracts.ts",
+    "check:wallet": "ts-node scripts/checkWallet.ts",
     "check:config": "ts-node scripts/checkConfig.ts",
     "verify:mnemonic": "ts-node scripts/verifyMnemonic.ts",
     "debug:wallet": "ts-node scripts/debugWallet.ts",

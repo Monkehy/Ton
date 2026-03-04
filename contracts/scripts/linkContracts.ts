@@ -65,11 +65,42 @@ async function main() {
   }
   const mnemonic = mnemonicStr.trim().split(/\s+/);
   const keyPair = await mnemonicToPrivateKey(mnemonic);
-  const walletContract = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
+
+  // Try both wallet versions to find the right one
+  const walletV4R2 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
+  console.log(`\n🔍 Checking wallet addresses:`);
+  console.log(`   v4r2: ${walletV4R2.address.toString()}`);
+
+  // Use the address that has balance
+  let walletContract = walletV4R2;
+  try {
+    const bal = await withRetry(() => client.getBalance(walletV4R2.address));
+    console.log(`   v4r2 balance: ${Number(bal) / 1e9} TON`);
+    if (bal > 0n) {
+      walletContract = walletV4R2;
+      console.log(`✅ Using v4r2`);
+    }
+  } catch { /* continue */ }
+
   const wallet = client.open(walletContract);
 
   console.log(`🔑 Wallet: ${walletContract.address.toString()}`);
   console.log(`🌐 Network: ${network}`);
+
+  // Check wallet status first
+  try {
+    const balance = await client.getBalance(walletContract.address);
+    console.log(`💰 Wallet balance: ${Number(balance) / 1e9} TON`);
+    if (balance < toNano("0.2")) {
+      console.error("❌ Insufficient balance! Need at least 0.2 TON for gas.");
+      console.error(`   Get testnet TON from: https://t.me/testgiver_ton_bot`);
+      process.exit(1);
+    }
+  } catch (e) {
+    console.error("❌ Cannot read wallet state:", e instanceof Error ? e.message : e);
+    console.error("   Make sure the wallet is deployed (has had at least one transaction)");
+    process.exit(1);
+  }
 
   const setGameContractBody = beginCell()
     .storeUint(OP_SET_GAME_CONTRACT, 32)
