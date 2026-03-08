@@ -50,20 +50,8 @@ contract DiceGameV2 with Deployable {
         require(msg.amount >= self.minAmount, "Amount too small");
         
         let player = msg.player;  // use player from message, not sender
-        
-        // Step 1: Deduct from DepositVault
-        send(SendParameters{
-            to: self.depositVault,
-            value: 0,
-            mode: SendRemainingValue,
-            bounce: true,
-            body: DeductForPlay{
-                player: player,
-                amount: msg.amount
-            }.toCell()
-        });
-        
-        // Step 2: True on-chain random using native_prepare_random
+
+        // Step 1: True on-chain random (before any sends)
         native_prepare_random();
         let seed = randomInt();
         let roll = (seed % 6) + 1;
@@ -72,9 +60,20 @@ contract DiceGameV2 with Deployable {
         let amount = msg.amount;
         let credit = 0;
         let resultCode = 0;
+
+        // Step 2: Deduct from DepositVault (fixed gas, not SendRemainingValue)
+        send(SendParameters{
+            to: self.depositVault,
+            value: ton("0.02"),
+            mode: SendPayGasSeparately,
+            bounce: true,
+            body: DeductForPlay{
+                player: player,
+                amount: msg.amount
+            }.toCell()
+        });
         
         if (isWin) {
-            // Calculate payout
             let hitCount = self.calcHitCount(msg.direction, msg.threshold);
             let payoutBps = self.payoutBpsByHitCount(hitCount);
             credit = (amount * payoutBps) / 10000;
@@ -83,8 +82,8 @@ contract DiceGameV2 with Deployable {
             // Step 3a: Pay winnings from PrizePool
             send(SendParameters{
                 to: self.prizePool,
-                value: 0,
-                mode: SendRemainingValue,
+                value: ton("0.02"),
+                mode: SendPayGasSeparately,
                 bounce: true,
                 body: PayWinnings{
                     roundId: self.roundSeq + 1,
@@ -93,15 +92,14 @@ contract DiceGameV2 with Deployable {
                 }.toCell()
             });
         } else {
-            // Calculate rebate (0.5%)
             credit = (amount * 50) / 10000;
             
             if (credit > 0) {
                 // Step 3b: Pay rebate from PrizePool
                 send(SendParameters{
                     to: self.prizePool,
-                    value: 0,
-                    mode: SendRemainingValue,
+                    value: ton("0.02"),
+                    mode: SendPayGasSeparately,
                     bounce: true,
                     body: PayRebate{
                         roundId: self.roundSeq + 1,

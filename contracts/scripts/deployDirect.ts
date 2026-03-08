@@ -73,6 +73,22 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function waitForSeqnoIncrease(
+  wallet: { getSeqno(): Promise<number> },
+  expectedSeqno: number,
+  maxWaitMs = 60000
+): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    await sleep(3000);
+    try {
+      const current = await wallet.getSeqno();
+      if (current > expectedSeqno) return;
+    } catch { /* ignore */ }
+  }
+  throw new Error(`Seqno did not increase after ${maxWaitMs}ms`);
+}
+
 async function waitForDeploy(client: TonClient, address: Address, contractName: string): Promise<void> {
   log(`   Waiting for ${contractName} deployment confirmation...`);
   
@@ -331,6 +347,7 @@ async function main() {
     ],
   });
 
+  await waitForSeqnoIncrease(walletContract, seqno);
   await waitForDeploy(client, coldWalletAddress, "MultiSigColdWallet");
 
   // ═══════════════════════════════════════════════════════════
@@ -359,6 +376,7 @@ async function main() {
     ],
   });
 
+  await waitForSeqnoIncrease(walletContract, currentSeqno1);
   await waitForDeploy(client, prizePoolAddress, "PrizePool");
 
   // Fund prize pool
@@ -377,7 +395,7 @@ async function main() {
     ],
   });
 
-  await sleep(5000); // Wait for funding transaction
+  await waitForSeqnoIncrease(walletContract, currentSeqno2);
   log(`   ✅ Prize pool funded`);
 
   // ═══════════════════════════════════════════════════════════
@@ -407,6 +425,7 @@ async function main() {
     ],
   });
 
+  await waitForSeqnoIncrease(walletContract, currentSeqno3);
   await waitForDeploy(client, depositVaultAddress, "DepositVault");
 
   // ═══════════════════════════════════════════════════════════
@@ -414,8 +433,11 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   log("\n📦 [4/4] Deploying DiceGameV2...");
 
-  // hotWallet = deployer wallet (owner), can be changed later via SetHotWallet
-  const diceGame = await DiceGameV2.fromInit(walletAddress, depositVaultAddress, prizePoolAddress, walletAddress);
+  // hotWallet = 从环境变量读取，如未设置则用 owner 占位
+  const hotWalletAddr = process.env.HOT_WALLET_ADDRESS
+    ? Address.parse(process.env.HOT_WALLET_ADDRESS)
+    : walletAddress;
+  const diceGame = await DiceGameV2.fromInit(walletAddress, depositVaultAddress, prizePoolAddress, hotWalletAddr);
   const diceGameAddress = diceGame.address;
   result.diceGameV2 = diceGameAddress;
 
@@ -436,6 +458,7 @@ async function main() {
     ],
   });
 
+  await waitForSeqnoIncrease(walletContract, currentSeqno4);
   await waitForDeploy(client, diceGameAddress, "DiceGameV2");
 
   // ═══════════════════════════════════════════════════════════
