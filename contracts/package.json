@@ -18,7 +18,8 @@
     "test:derivation": "ts-node scripts/testKeyDerivation.ts",
     "mainnet:deploy": "blueprint run deployDiceGame --mainnet",
     "redeploy:prizepool": "ts-node scripts/redeployPrizePool.ts",
-    "fund:prizepool": "ts-node scripts/fundPrizePool.ts"
+    "fund:prizepool": "ts-node scripts/fundPrizePool.ts",
+    "deploy:dice-only": "ts-node scripts/deployDiceGameOnly.ts"
   },
   "dependencies": {
     "@ton/core": "^0.63.0"

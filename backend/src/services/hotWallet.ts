@@ -87,7 +87,7 @@ export async function sendPlayRound(params: {
     messages: [
       internal({
         to: gameAddr,
-        value: toNano("0.2"),
+        value: toNano("0.08"),
         body
       })
     ]

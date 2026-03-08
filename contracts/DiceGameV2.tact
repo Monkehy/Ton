@@ -61,7 +61,7 @@ contract DiceGameV2 with Deployable {
         let resultCode = 0;
         send(SendParameters{
             to: self.depositVault,
-            value: ton("0.05"),
+            value: ton("0.02"),
             mode: SendPayGasSeparately,
             bounce: true,
             body: DeductForPlay{
@@ -79,7 +79,7 @@ contract DiceGameV2 with Deployable {
             // Send only gas; PrizePool pays winnings from its own platformFunds
             send(SendParameters{
                 to: self.prizePool,
-                value: ton("0.05"),
+                value: ton("0.02"),
                 mode: SendPayGasSeparately,
                 bounce: true,
                 body: PayWinnings{
