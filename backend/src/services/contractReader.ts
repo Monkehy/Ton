@@ -77,10 +77,11 @@ export async function readContractSnapshot(wallet?: string): Promise<ContractSna
         ]);
 
         const cfg = cfgRes.stack;
-        // GameConfig: owner, depositVault, prizePool, paused, emergency, minAmount
+        // GameConfig: owner, depositVault, prizePool, hotWallet, paused, emergency, minAmount
         cfg.readAddress();  // owner
         cfg.readAddress();  // depositVault
         cfg.readAddress();  // prizePool
+        cfg.readAddress();  // hotWallet
         paused = cfg.readBoolean();
         cfg.readBoolean();  // emergency
         const minAmount = cfg.readBigNumber();
