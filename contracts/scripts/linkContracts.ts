@@ -13,9 +13,9 @@ import { storeSetDepositVault } from "../build/PrizePool/tact_PrizePool";
 
 // ── 已部署的合约地址 ───────────────────────────────────────────
 const CONTRACTS = {
-  depositVault: "EQBjKDiTdErhtPSMqLeqUkaxrH78F9XgjNgTSHUeED51Rg5J",
-  prizePool:    "EQDHbqGnjMSaSwPEPkjnUfH450W6jN2TDELxhsBOcYPXKEd6",
-  diceGameV2:   "EQDpw7gljveYDi1TKrEky_CynU0FnDE7HlZs_9CTbh9LRn17",
+  depositVault: "EQB-ynBEp-X1xvdu9Plr5LsZToc_ZnxR9aYbwmliGZZzzH7S",
+  prizePool:    "EQADwHZO5Jc5RVQ3X8URmyyImcC3HzGETsSdKPa-xjHeymnF",
+  diceGameV2:   "EQBnDPuLuf3YN2JO0LTUTCeoFie36hyRXQju2qZqTBiTXEOZ",
 };
 
 function sleep(ms: number) {

@@ -59,8 +59,6 @@ contract DiceGameV2 with Deployable {
         let amount = msg.amount;
         let credit = 0;
         let resultCode = 0;
-
-        // Step 2: Deduct from DepositVault
         send(SendParameters{
             to: self.depositVault,
             value: ton("0.05"),
@@ -90,23 +88,6 @@ contract DiceGameV2 with Deployable {
                     amount: credit
                 }.toCell()
             });
-        } else {
-            credit = (amount * 50) / 10000;
-            
-            if (credit > 0) {
-                // Send only gas; PrizePool pays rebate from its own platformFunds
-                send(SendParameters{
-                    to: self.prizePool,
-                    value: ton("0.05"),
-                    mode: SendPayGasSeparately,
-                    bounce: true,
-                    body: PayRebate{
-                        roundId: self.roundSeq + 1,
-                        player: player,
-                        amount: credit
-                    }.toCell()
-                });
-            }
         }
         
         self.roundSeq = self.roundSeq + 1;
@@ -275,12 +256,6 @@ message DeductForPlay {
 }
 
 message PayWinnings {
-    roundId: Int;
-    player: Address;
-    amount: Int;
-}
-
-message PayRebate {
     roundId: Int;
     player: Address;
     amount: Int;

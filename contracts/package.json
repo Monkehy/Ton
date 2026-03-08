@@ -17,7 +17,8 @@
     "debug:wallet": "ts-node scripts/debugWallet.ts",
     "test:derivation": "ts-node scripts/testKeyDerivation.ts",
     "mainnet:deploy": "blueprint run deployDiceGame --mainnet",
-    "redeploy:prizepool": "ts-node scripts/redeployPrizePool.ts"
+    "redeploy:prizepool": "ts-node scripts/redeployPrizePool.ts",
+    "fund:prizepool": "ts-node scripts/fundPrizePool.ts"
   },
   "dependencies": {
     "@ton/core": "^0.63.0"
