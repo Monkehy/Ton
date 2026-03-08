@@ -12,7 +12,7 @@ import { mnemonicToPrivateKey, mnemonicToWalletKey, KeyPair } from "@ton/crypto"
 const CONTRACTS = {
   depositVault: "EQArZnxBthm0Y7Qjv5sn1xjb5aJoKgK3EHcfG4fZf-jst2mj",
   prizePool:    "EQAoaVL6MLPmz0ddoz-6SbKjzJMfNZKmBR4WFj15e9PPcAjv",
-  diceGameV2:   "EQAYVdIpuVg0s7qxqpdLJuCLRzy2oFUohsFJRknxx6X_blNx",
+  diceGameV2:   "EQDJ7qjabSbZV-kxMCVvt1OfF2nSZM7UR3K0Yg_AqgE_1RtT",
 };
 
 const OP_SET_GAME_CONTRACT = 2882474885;
