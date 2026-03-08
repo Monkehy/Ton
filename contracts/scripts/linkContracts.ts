@@ -13,9 +13,9 @@ import { storeSetDepositVault } from "../build/PrizePool/tact_PrizePool";
 
 // ── 已部署的合约地址（diceGameV2 填你 deploy:dice-only 输出的新地址）───────────────────────
 const CONTRACTS = {
-  depositVault: "EQB-ynBEp-X1xvdu9Plr5LsZToc_ZnxR9aYbwmliGZZzzH7S",
+  depositVault: "EQArr02g0TWuB_SOdaJXPGnNCTT3Tl4XLBk_LDJH2qw-kvGB",
   prizePool:    "EQADwHZO5Jc5RVQ3X8URmyyImcC3HzGETsSdKPa-xjHeymnF",
-  diceGameV2:   "EQBnDPuLuf3YN2JO0LTUTCeoFie36hyRXQju2qZqTBiTXEOZ",
+  diceGameV2:   "EQBV2GS_oOmdHsSf0PXK_OcL469KjEiWuU38XBXwmhudkHe5",
 };
 
 function parseAddress(s: string): Address {

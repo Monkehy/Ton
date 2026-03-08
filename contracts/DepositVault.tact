@@ -41,6 +41,12 @@ contract DepositVault with Deployable {
     // User Operations
     // ═══════════════════════════════════════════════════════════
 
+    // Reject unexpected plain TON transfers that have no op-code
+    // (prevents gas refunds or internal messages from accidentally crediting user balance)
+    receive() {
+        // silently accept but do nothing — just absorbs stray transfers
+    }
+
     receive(msg: Deposit) {
         require(!self.paused, "Vault paused");
         // Subtract gas reserve so user balance only reflects actual deposit value
@@ -50,6 +56,9 @@ contract DepositVault with Deployable {
         let amount = raw - GAS_RESERVE;
         
         let user = sender();
+        // Block internal contract addresses from accidentally triggering deposit
+        require(user != self.gameContract, "Game contract cannot deposit");
+        require(user != self.prizePool, "Prize pool cannot deposit");
         
         // Update user balance
         let currentBalance = self.getUserBalance(user);
