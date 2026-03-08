@@ -78,7 +78,7 @@ contract DiceGameV2 with Deployable {
             credit = (amount * payoutBps) / 10000;
             resultCode = 1;
             
-            // Step 3a: Pay winnings from PrizePool (needs enough gas for PrizePool→DepositVault hop)
+            // Send only gas; PrizePool pays winnings from its own platformFunds
             send(SendParameters{
                 to: self.prizePool,
                 value: ton("0.05"),
@@ -94,7 +94,7 @@ contract DiceGameV2 with Deployable {
             credit = (amount * 50) / 10000;
             
             if (credit > 0) {
-                // Step 3b: Pay rebate from PrizePool
+                // Send only gas; PrizePool pays rebate from its own platformFunds
                 send(SendParameters{
                     to: self.prizePool,
                     value: ton("0.05"),

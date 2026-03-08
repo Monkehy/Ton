@@ -3,9 +3,9 @@
 
 import "@stdlib/deploy";
 
-const HOT_RATIO_BPS: Int = 1000;  // 10% (1000 / 10000)
+const HOT_RATIO_BPS: Int = 10000; // 100% hot reserve (no cold split in current version)
 const MAX_HOT_WITHDRAW_TON: Int = ton("10");  // Max single hot withdrawal
-const MIN_HOT_RESERVE_TON: Int = ton("5");    // Minimum hot reserve threshold
+const MIN_HOT_RESERVE_TON: Int = ton("0.5");  // Minimum hot reserve threshold
 
 contract DepositVault with Deployable {
     owner: Address;
@@ -43,8 +43,11 @@ contract DepositVault with Deployable {
 
     receive(msg: Deposit) {
         require(!self.paused, "Vault paused");
-        let amount = context().value;
-        require(amount > ton("0.01"), "Deposit too small");
+        // Subtract gas reserve so user balance only reflects actual deposit value
+        let GAS_RESERVE: Int = ton("0.02");
+        let raw = context().value;
+        require(raw > GAS_RESERVE + ton("0.01"), "Deposit too small");
+        let amount = raw - GAS_RESERVE;
         
         let user = sender();
         
@@ -118,12 +121,9 @@ contract DepositVault with Deployable {
                 }.toCell());
             }
         } else {
-            // Large withdrawal or hot depleted -> pending manual cold wallet release
-            emit(WithdrawalPending{
-                user: user,
-                amount: amount,
-                reason: amount > MAX_HOT_WITHDRAW_TON ? "Exceeds hot limit" : "Hot reserve depleted"
-            }.toCell());
+            // Hot reserve depleted or amount exceeds limit — reject with error so user knows
+            require(self.hotReserve >= amount, "Hot reserve depleted, contact support");
+            require(amount <= MAX_HOT_WITHDRAW_TON, "Amount exceeds single withdrawal limit");
         }
     }
 

@@ -3,8 +3,8 @@
 
 import "@stdlib/deploy";
 
-const RESERVE_FLOOR_TON: Int = ton("1000");  // Minimum pool reserve
-const MAX_PAYOUT_PER_ROUND_BPS: Int = 100;   // Max 1% of pool per round (100/10000)
+const RESERVE_FLOOR_TON: Int = ton("0.1");   // Minimum pool reserve
+const MAX_PAYOUT_PER_ROUND_BPS: Int = 5000;  // Max 50% of pool per round (5000/10000)
 
 contract PrizePool with Deployable {
     owner: Address;
