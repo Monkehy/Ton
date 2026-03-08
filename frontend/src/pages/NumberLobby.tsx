@@ -50,6 +50,7 @@ export interface NumberLobbyProps {
   maxAmountTon?: string;
   onBalanceChange: (val: string) => void;
   onClaimableChange: (val: string) => void;
+  onRoundEnd?: () => void;  // 通知父组件刷新余额
 }
 
 export function NumberLobby({
@@ -59,7 +60,8 @@ export function NumberLobby({
   claimableTon,
   maxAmountTon,
   onBalanceChange,
-  onClaimableChange
+  onClaimableChange,
+  onRoundEnd
 }: NumberLobbyProps) {
   const contract = contractAddress || CONTRACT_ADDRESS;
   const maxBet = Number(maxAmountTon) || Infinity;
@@ -201,20 +203,10 @@ export function NumberLobby({
 
   function handleConfirm() {
     setShowResult(false);
-    const r = pendingResult.current;
-    if (!r) return;
-    const amt = parseFloat(r.amountTon);
-    const newBal = r.win
-      ? balanceNum - amt + parseFloat(r.payoutTon)
-      : balanceNum - amt + parseFloat(r.rebateTon);
-    onBalanceChange(Math.max(0, newBal).toFixed(4));
-    if (r.win) {
-      onClaimableChange((Number(claimableTon) + parseFloat(r.payoutTon)).toFixed(4));
-    } else if (parseFloat(r.rebateTon) > 0) {
-      onClaimableChange((Number(claimableTon) + parseFloat(r.rebateTon)).toFixed(4));
-    }
-    setDisplayNum(threshold);
     pendingResult.current = null;
+    setDisplayNum(threshold);
+    // 通知父组件重新从链上拉取最新余额
+    onRoundEnd?.();
   }
 
   async function handleWithdrawBalance() {

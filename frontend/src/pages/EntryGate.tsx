@@ -70,7 +70,17 @@ export function EntryGate() {
     el.style.animation = "countUp 0.3s ease-out";
   }, [balanceTon]);
 
-  // Resolve contract addresses
+  // 游戏结束后重新从链上拉取余额（立即 + 延迟各拉一次）
+  const refreshBalance = () => {
+    if (!wallet) return;
+    const doFetch = () => fetchUserStatus(wallet).then((res) => {
+      if (res.balanceTon) setBalanceTon(res.balanceTon);
+      if (res.claimableTon) setClaimableTon(res.claimableTon);
+    }).catch(() => {});
+    doFetch();
+    setTimeout(doFetch, 5000);   // 5秒后再拉一次，等链上结算
+    setTimeout(doFetch, 15000);  // 15秒后再拉一次，确保最终状态
+  };
   // Deposit/Withdraw → DepositVault; PlayRound → DiceGameV2 (passed via status.contractAddress)
   const DEPOSIT_VAULT_FALLBACK = import.meta.env.VITE_DEPOSIT_VAULT_ADDRESS || "";
   const depositVaultAddress = status?.depositVaultAddress || DEPOSIT_VAULT_FALLBACK;
@@ -293,6 +303,7 @@ export function EntryGate() {
             maxAmountTon={status.maxAmountTon}
             onBalanceChange={setBalanceTon}
             onClaimableChange={setClaimableTon}
+            onRoundEnd={refreshBalance}
           />
         )}
       </main>
