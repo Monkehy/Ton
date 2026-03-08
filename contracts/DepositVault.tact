@@ -11,6 +11,7 @@ contract DepositVault with Deployable {
     owner: Address;
     gameContract: Address;
     coldWalletAddress: Address;
+    prizePool: Address;  // allowed to call CreditBalance
     
     paused: Bool;
     
@@ -24,10 +25,11 @@ contract DepositVault with Deployable {
     totalDeposits: Int;
     totalWithdrawn: Int;
     
-    init(owner: Address, gameContract: Address, coldWalletAddress: Address) {
+    init(owner: Address, gameContract: Address, coldWalletAddress: Address, prizePool: Address) {
         self.owner = owner;
         self.gameContract = gameContract;
         self.coldWalletAddress = coldWalletAddress;
+        self.prizePool = prizePool;
         self.paused = false;
         self.userBalance = emptyMap();
         self.hotReserve = 0;
@@ -161,6 +163,23 @@ contract DepositVault with Deployable {
         }.toCell());
     }
 
+    // Credit winnings/rebate back to user balance (called by PrizePool)
+    receive(msg: CreditBalance) {
+        self.assertPrizePool();
+        let user = msg.player;
+        let amount = msg.amount;
+        require(amount > 0, "Credit amount must be positive");
+
+        let balance = self.getUserBalance(user);
+        self.userBalance.set(user, balance + amount);
+
+        emit(BalanceCredited{
+            user: user,
+            amount: amount,
+            newBalance: balance + amount
+        }.toCell());
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Admin Operations
     // ═══════════════════════════════════════════════════════════
@@ -207,6 +226,11 @@ contract DepositVault with Deployable {
         self.gameContract = msg.newGameContract;
     }
 
+    receive(msg: SetPrizePool) {
+        self.assertOwner();
+        self.prizePool = msg.newPrizePool;
+    }
+
     receive(msg: Pause) {
         self.assertOwner();
         self.paused = true;
@@ -227,6 +251,10 @@ contract DepositVault with Deployable {
 
     fun assertGameContract() {
         require(sender() == self.gameContract, "Not game contract");
+    }
+
+    fun assertPrizePool() {
+        require(sender() == self.prizePool, "Not prize pool");
     }
 
     fun getUserBalance(addr: Address): Int {
@@ -258,7 +286,8 @@ contract DepositVault with Deployable {
         return VaultConfig{
             owner: self.owner,
             gameContract: self.gameContract,
-            coldWalletAddress: self.coldWalletAddress
+            coldWalletAddress: self.coldWalletAddress,
+            prizePool: self.prizePool
         };
     }
 }
@@ -296,6 +325,15 @@ message SetColdWallet {
 
 message SetGameContract {
     newGameContract: Address;
+}
+
+message SetPrizePool {
+    newPrizePool: Address;
+}
+
+message CreditBalance {
+    player: Address;
+    amount: Int;
 }
 
 message Pause {}
@@ -337,6 +375,12 @@ message BalanceRefunded {
     newBalance: Int;
 }
 
+message BalanceCredited {
+    user: Address;
+    amount: Int;
+    newBalance: Int;
+}
+
 message HotReserveLowAlert {
     currentReserve: Int;
     threshold: Int;
@@ -362,4 +406,5 @@ struct VaultConfig {
     owner: Address;
     gameContract: Address;
     coldWalletAddress: Address;
+    prizePool: Address;
 }

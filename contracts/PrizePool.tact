@@ -9,6 +9,7 @@ const MAX_PAYOUT_PER_ROUND_BPS: Int = 100;   // Max 1% of pool per round (100/10
 contract PrizePool with Deployable {
     owner: Address;
     gameContract: Address;
+    depositVault: Address;  // credit winnings back to vault instead of direct payout
     
     paused: Bool;
     
@@ -20,9 +21,10 @@ contract PrizePool with Deployable {
     totalRebates: Int;
     roundsPaid: Int;
     
-    init(owner: Address, gameContract: Address) {
+    init(owner: Address, gameContract: Address, depositVault: Address) {
         self.owner = owner;
         self.gameContract = gameContract;
+        self.depositVault = depositVault;
         self.paused = false;
         self.platformFunds = 0;
         self.totalPayouts = 0;
@@ -97,11 +99,16 @@ contract PrizePool with Deployable {
         self.totalPayouts = self.totalPayouts + amount;
         self.roundsPaid = self.roundsPaid + 1;
         
+        // Credit winnings back to player's DepositVault balance
         send(SendParameters{
-            to: player,
+            to: self.depositVault,
             value: amount,
-            mode: SendPayGasSeparately | SendIgnoreErrors,
-            bounce: false
+            mode: SendPayGasSeparately,
+            bounce: true,
+            body: CreditBalance{
+                player: player,
+                amount: amount
+            }.toCell()
         });
         
         emit(WinningsPaid{
@@ -134,11 +141,16 @@ contract PrizePool with Deployable {
         self.platformFunds = self.platformFunds - amount;
         self.totalRebates = self.totalRebates + amount;
         
+        // Credit rebate back to player's DepositVault balance
         send(SendParameters{
-            to: player,
+            to: self.depositVault,
             value: amount,
-            mode: SendPayGasSeparately | SendIgnoreErrors,
-            bounce: false
+            mode: SendPayGasSeparately,
+            bounce: true,
+            body: CreditBalance{
+                player: player,
+                amount: amount
+            }.toCell()
         });
         
         emit(RebatePaid{
@@ -165,6 +177,11 @@ contract PrizePool with Deployable {
     receive(msg: SetGameContract) {
         self.assertOwner();
         self.gameContract = msg.newGameContract;
+    }
+
+    receive(msg: SetDepositVault) {
+        self.assertOwner();
+        self.depositVault = msg.newDepositVault;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -234,6 +251,15 @@ message Resume {}
 
 message SetGameContract {
     newGameContract: Address;
+}
+
+message SetDepositVault {
+    newDepositVault: Address;
+}
+
+message CreditBalance {
+    player: Address;
+    amount: Int;
 }
 
 // ═══════════════════════════════════════════════════════════

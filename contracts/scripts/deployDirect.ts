@@ -8,8 +8,8 @@
  * NETWORK=mainnet MNEMONIC="your 24 words here" npm run deploy:direct
  */
 
-import { Address, toNano, beginCell, Dictionary, TonClient, WalletContractV4, internal } from "@ton/ton";
-import { mnemonicToPrivateKey } from "@ton/crypto";
+import { Address, toNano, beginCell, Dictionary, TonClient, WalletContractV4, WalletContractV5R1, internal, SendMode } from "@ton/ton";
+import { mnemonicToPrivateKey, mnemonicToWalletKey } from "@ton/crypto";
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
@@ -35,6 +35,7 @@ const TESTNET_CONFIG = {
     "0QBiscsb5FcPiejE83xO_QsdF2ODzT8d-KlIFyChNlcBVohJ",
     "0QBZ_8MY0xfr4LjjEPnQsdG7YN3cuvlPbBSMNLaIqjcfJdVe",
   ],
+  ownerAddress: "0QDQxfvGyvPGDIlgfbdqW0wlNgh8kBqISxAbiJlctIGHxMns",
   initialPrizePoolAmount: "0.1", // Testnet 初始奖池金额（TON）- 降低到 0.1 TON 节省测试币
   rpcEndpoint: "https://testnet.toncenter.com/api/v2/jsonRPC",
   explorerUrl: "https://testnet.tonscan.org/address/",
@@ -47,6 +48,7 @@ const MAINNET_CONFIG = {
     "UQBPJkd3EkvdvyTwZPFGC6NpSRCsR4w0FXN4mG73emg1W8LW", // Mainnet Signer 2
     "UQAN07UF1TK49WOSgdBAFLj_VsLq14uD6v4MhJiW0wtW2nMl", // Mainnet Signer 3
   ],
+  ownerAddress: "UQB3J9IorzTiB6Uo17hzalUy_DcLcRZIpy6hww966Ziki5r8",
   initialPrizePoolAmount: "1", // Mainnet 初始奖池金额（TON）- 测试阶段使用 1 TON
   rpcEndpoint: "https://toncenter.com/api/v2/jsonRPC",
   explorerUrl: "https://tonscan.org/address/",
@@ -185,28 +187,61 @@ async function main() {
 
   // 4. Initialize wallet
   log("\n🔐 Initializing wallet...");
-  const keyPair = await mnemonicToPrivateKey(mnemonic.split(" "));
+  const kpDirect    = await mnemonicToPrivateKey(mnemonic.split(" "));
+  const kpTonkeeper = await mnemonicToWalletKey(mnemonic.split(" "));
   const workchain = 0;
-  
-  // WalletContractV4.create 默认使用 V4R2 版本
-  const wallet = WalletContractV4.create({ 
-    workchain, 
-    publicKey: keyPair.publicKey
+
+  // 优先 W5 testnet (Tonkeeper 默认)
+  const walletV5 = WalletContractV5R1.create({
+    workchain,
+    publicKey: kpTonkeeper.publicKey,
+    walletId: { networkGlobalId: -3 },
   });
-  
-  // 使用 testOnly + non-bounceable 格式（0Q 开头）
-  const walletAddress = wallet.address;
-  const walletAddressStr = network === "testnet" 
+
+  // fallback V4R2
+  const walletV4Direct    = WalletContractV4.create({ workchain, publicKey: kpDirect.publicKey });
+  const walletV4Tonkeeper = WalletContractV4.create({ workchain, publicKey: kpTonkeeper.publicKey });
+
+  // 默认用 V5 地址（最常见），candidate 匹配后可能覆盖
+  let matchedWallet: WalletContractV5R1 | WalletContractV4 = walletV5;
+  let keyPair: { publicKey: Buffer; secretKey: Buffer } = kpTonkeeper;
+  let isV5 = true;
+
+  // 如果 config 里有 OWNER_ADDRESS，尝试精确匹配
+  if (config.ownerAddress) {
+    const target = config.ownerAddress.trim();
+    const candidates = [
+      { wallet: walletV5,           keyPair: kpTonkeeper, name: "v5r1/tonkeeper/testnet" },
+      { wallet: walletV4Direct,     keyPair: kpDirect,    name: "v4r2/direct" },
+      { wallet: walletV4Tonkeeper,  keyPair: kpTonkeeper, name: "v4r2/tonkeeper" },
+    ];
+    for (const c of candidates) {
+      const addrTest = c.wallet.address.toString({ bounceable: false, testOnly: true });
+      const addrMain = c.wallet.address.toString({ bounceable: false, testOnly: false });
+      if (addrTest === target || addrMain === target) {
+        matchedWallet = c.wallet;
+        keyPair = c.keyPair;
+        isV5 = c.name.startsWith("v5");
+        log(`📌 Matched wallet: ${c.name}`);
+        break;
+      }
+    }
+  } else {
+    log("📌 Using default: v5r1/tonkeeper/testnet");
+  }
+
+  const walletAddress = matchedWallet.address;
+  const walletAddressStr = network === "testnet"
     ? walletAddress.toString({ testOnly: true, bounceable: false })
     : walletAddress.toString({ bounceable: false });
 
-  log(`   Wallet Version: V4R2 (default)`);
   log(`   Wallet Address: ${walletAddressStr}`);
 
   // 5. Initialize TON Client
   log("\n🌐 Connecting to TON network...");
   const client = new TonClient({
     endpoint: config.rpcEndpoint,
+    apiKey: process.env.TONCENTER_API_KEY,
   });
 
   // 6. Check wallet balance
@@ -238,7 +273,25 @@ async function main() {
   }
 
   // 7. Open wallet contract
-  const walletContract = client.open(wallet);
+  const walletContract = client.open(matchedWallet as WalletContractV5R1);
+
+  // 统一发送函数，V5 需要额外的 sendMode 参数
+  async function sendTransfer(args: { seqno: number; secretKey: Buffer; messages: ReturnType<typeof internal>[] }) {
+    if (isV5) {
+      await (walletContract as ReturnType<typeof client.open<WalletContractV5R1>>).sendTransfer({
+        seqno: args.seqno,
+        secretKey: args.secretKey,
+        messages: args.messages,
+        sendMode: SendMode.PAY_GAS_SEPARATELY,
+      });
+    } else {
+      await (client.open(matchedWallet as WalletContractV4) as ReturnType<typeof client.open<WalletContractV4>>).sendTransfer({
+        seqno: args.seqno,
+        secretKey: args.secretKey,
+        messages: args.messages,
+      });
+    }
+  }
   const seqno = await walletContract.getSeqno();
   log(`   Current Seqno: ${seqno}`);
 
@@ -265,7 +318,7 @@ async function main() {
   log(`   Address: ${coldWalletAddress.toString()}`);
   log(`   Sending deployment transaction...`);
 
-  await walletContract.sendTransfer({
+  await sendTransfer({
     seqno: seqno,
     secretKey: keyPair.secretKey,
     messages: [
@@ -285,7 +338,7 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   log("\n📦 [2/4] Deploying PrizePool...");
 
-  const prizePool = await PrizePool.fromInit(walletAddress, coldWalletAddress);
+  const prizePool = await PrizePool.fromInit(walletAddress, walletAddress, walletAddress);
   const prizePoolAddress = prizePool.address;
   result.prizePool = prizePoolAddress;
 
@@ -293,7 +346,7 @@ async function main() {
   log(`   Sending deployment transaction...`);
 
   const currentSeqno1 = await walletContract.getSeqno();
-  await walletContract.sendTransfer({
+  await sendTransfer({
     seqno: currentSeqno1,
     secretKey: keyPair.secretKey,
     messages: [
@@ -312,7 +365,7 @@ async function main() {
   log(`\n💰 Funding prize pool with ${config.initialPrizePoolAmount} TON...`);
   
   const currentSeqno2 = await walletContract.getSeqno();
-  await walletContract.sendTransfer({
+  await sendTransfer({
     seqno: currentSeqno2,
     secretKey: keyPair.secretKey,
     messages: [
@@ -332,8 +385,8 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   log("\n📦 [3/4] Deploying DepositVault...");
 
-  // DepositVault 需要 3 个参数：owner, gameContract (先用 owner 占位), coldWalletAddress
-  const depositVault = await DepositVault.fromInit(walletAddress, walletAddress, coldWalletAddress);
+  // DepositVault 需要 4 个参数：owner, gameContract (先用 owner 占位), coldWalletAddress, prizePool (先用 owner 占位)
+  const depositVault = await DepositVault.fromInit(walletAddress, walletAddress, coldWalletAddress, walletAddress);
   const depositVaultAddress = depositVault.address;
   result.depositVault = depositVaultAddress;
 
@@ -341,7 +394,7 @@ async function main() {
   log(`   Sending deployment transaction...`);
 
   const currentSeqno3 = await walletContract.getSeqno();
-  await walletContract.sendTransfer({
+  await sendTransfer({
     seqno: currentSeqno3,
     secretKey: keyPair.secretKey,
     messages: [
@@ -370,7 +423,7 @@ async function main() {
   log(`   Sending deployment transaction...`);
 
   const currentSeqno4 = await walletContract.getSeqno();
-  await walletContract.sendTransfer({
+  await sendTransfer({
     seqno: currentSeqno4,
     secretKey: keyPair.secretKey,
     messages: [
@@ -449,6 +502,11 @@ async function main() {
 // Run the deployment
 main().catch((error) => {
   console.error("\n❌ Deployment failed:");
-  console.error(error.message);
+  console.error(error instanceof Error ? error.stack : error);
+  if (error && typeof error === 'object' && 'response' in error) {
+    const e = error as { response?: { data?: unknown; status?: number } };
+    console.error("HTTP status:", e.response?.status);
+    console.error("Response data:", JSON.stringify(e.response?.data, null, 2));
+  }
   process.exit(1);
 });

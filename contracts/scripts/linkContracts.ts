@@ -10,12 +10,14 @@ import { mnemonicToPrivateKey, mnemonicToWalletKey, KeyPair } from "@ton/crypto"
 
 // ── 已部署的合约地址 ───────────────────────────────────────────
 const CONTRACTS = {
-  depositVault: "EQAZ0z67dRu0GNuCmkqkmwDhuhMiZ4_HNw5hqVdvq5-fOq0P",
-  prizePool:    "EQBkO3DZNMGkBzRZWfhh_GutLDoMVRY1T2PSj3mPmoovJgdS",
-  diceGameV2:   "EQBhTqBrGrc_qH_uNYyacb7yOUewfTdUEyOCE4jJY3O3dDut",
+  depositVault: "EQArZnxBthm0Y7Qjv5sn1xjb5aJoKgK3EHcfG4fZf-jst2mj",
+  prizePool:    "EQAoaVL6MLPmz0ddoz-6SbKjzJMfNZKmBR4WFj15e9PPcAjv",
+  diceGameV2:   "EQCmjQigvXYLiUGyGDOv-UFx29zxOyY6KTxv29YWbJI_unYY",
 };
 
 const OP_SET_GAME_CONTRACT = 2882474885;
+const OP_SET_PRIZE_POOL    = 525905820;  // SetPrizePool for DepositVault
+const OP_SET_DEPOSIT_VAULT = 536588771;  // SetDepositVault for PrizePool
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -141,17 +143,41 @@ async function main() {
     .storeAddress(Address.parse(CONTRACTS.diceGameV2))
     .endCell();
 
-  // ── Send to DepositVault ──────────────────────────────────────
-  console.log("\n📤 [1/2] Sending SetGameContract to DepositVault...");
+  const setPrizePoolBody = beginCell()
+    .storeUint(OP_SET_PRIZE_POOL, 32)
+    .storeAddress(Address.parse(CONTRACTS.prizePool))
+    .endCell();
+
+  const setDepositVaultBody = beginCell()
+    .storeUint(OP_SET_DEPOSIT_VAULT, 32)
+    .storeAddress(Address.parse(CONTRACTS.depositVault))
+    .endCell();
+
+  // ── [1/4] SetGameContract → DepositVault ─────────────────────
+  console.log("\n📤 [1/4] Sending SetGameContract to DepositVault...");
   const seqno1 = await withRetry(() => wallet.getSeqno());
   await withRetry(() => sendMsg(seqno1, setGameContractBody, Address.parse(CONTRACTS.depositVault)));
   console.log("   ✅ Sent! Waiting 20s for confirmation...");
   await sleep(20000);
 
-  // ── Send to PrizePool ─────────────────────────────────────────
-  console.log("📤 [2/2] Sending SetGameContract to PrizePool...");
+  // ── [2/4] SetGameContract → PrizePool ────────────────────────
+  console.log("📤 [2/4] Sending SetGameContract to PrizePool...");
   const seqno2 = await withRetry(() => wallet.getSeqno());
   await withRetry(() => sendMsg(seqno2, setGameContractBody, Address.parse(CONTRACTS.prizePool)));
+  console.log("   ✅ Sent! Waiting 20s...");
+  await sleep(20000);
+
+  // ── [3/4] SetPrizePool → DepositVault ────────────────────────
+  console.log("📤 [3/4] Sending SetPrizePool to DepositVault...");
+  const seqno3 = await withRetry(() => wallet.getSeqno());
+  await withRetry(() => sendMsg(seqno3, setPrizePoolBody, Address.parse(CONTRACTS.depositVault)));
+  console.log("   ✅ Sent! Waiting 20s...");
+  await sleep(20000);
+
+  // ── [4/4] SetDepositVault → PrizePool ────────────────────────
+  console.log("📤 [4/4] Sending SetDepositVault to PrizePool...");
+  const seqno4 = await withRetry(() => wallet.getSeqno());
+  await withRetry(() => sendMsg(seqno4, setDepositVaultBody, Address.parse(CONTRACTS.prizePool)));
   console.log("   ✅ Sent!");
 
   console.log("\n🎉 Done! Verify on explorer:");
