@@ -361,7 +361,8 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   log("\n📦 [4/4] Deploying DiceGameV2...");
 
-  const diceGame = await DiceGameV2.fromInit(walletAddress, prizePoolAddress, depositVaultAddress);
+  // hotWallet = deployer wallet (owner), can be changed later via SetHotWallet
+  const diceGame = await DiceGameV2.fromInit(walletAddress, depositVaultAddress, prizePoolAddress, walletAddress);
   const diceGameAddress = diceGame.address;
   result.diceGameV2 = diceGameAddress;
 

@@ -18,6 +18,8 @@ const schema = z.object({
   TON_PRIZE_POOL_ADDRESS: z.string().optional(),
   TON_RPC_ENDPOINT: z.string().default("https://toncenter.com/api/v2/jsonRPC"),
   TON_RPC_API_KEY: z.string().optional(),
+  HOT_WALLET_MNEMONIC: z.string().optional(),  // backend hot wallet mnemonic (24 words)
+  TELEGRAM_BOT_TOKEN: z.string().optional(),   // for validating initData
   SCORE_CONFIRM_POLL_MS: z.coerce.number().default(5000),
   MOCK_CONFIRM_DELAY_MS: z.coerce.number().default(15000),
   MOCK_CONFIRMED_AMOUNT_NANO: z.coerce.bigint().default(1_000_000_000n),

@@ -3,12 +3,17 @@ import { useTonConnectUI } from "@tonconnect/ui-react";
 import { toNano } from "@ton/core";
 import { fetchRecentTransactions, submitScore, submitRound } from "../lib/api";
 import {
-  buildPlayRoundPayload,
   buildWithdrawBalancePayload,
   buildClaimPayload
 } from "../lib/playRound";
 import { ResultModal } from "../components/ResultModal";
 import { useT } from "../i18n/LocaleContext";
+
+declare global {
+  interface Window {
+    Telegram?: { WebApp?: { initData?: string } };
+  }
+}
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
 const POLL_INTERVAL_MS = 2500;
@@ -84,7 +89,7 @@ export function NumberLobby({
   const hasEnoughBalance = balanceNum >= inputAmount;
   const mustWin = isMustWin(selectedDir, threshold);
   const canStart = Boolean(
-    contract && wallet && isAmountValid && hasEnoughBalance && selectedDir && !isRolling && !mustWin
+    wallet && isAmountValid && hasEnoughBalance && selectedDir && !isRolling && !mustWin
   );
 
   function sliderStyle(val: number) {
@@ -165,14 +170,25 @@ export function NumberLobby({
 
     const dirNum: 0 | 1 = dir === "low" ? 0 : 1;
     const amountNano = toNano(String(amt));
-    const payload = buildPlayRoundPayload(dirNum, threshold, amountNano, Math.floor(Date.now() / 1000));
+
     try {
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [{ address: contract, amount: toNano("0.05").toString(), payload }]
+      const res = await fetch("/api/game/play", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          wallet,
+          direction: dirNum,
+          threshold,
+          amountNano: amountNano.toString(),
+          initData: window.Telegram?.WebApp?.initData ?? ""
+        })
       });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string; message?: string };
+        throw new Error(err.message ?? err.error ?? "游戏请求失败");
+      }
     } catch (e) {
-      setTxError(e instanceof Error ? e.message : "交易被取消或失败");
+      setTxError(e instanceof Error ? e.message : "游戏请求失败");
       return;
     }
 

@@ -11,6 +11,7 @@ contract DiceGameV2 with Deployable {
     owner: Address;
     depositVault: Address;
     prizePool: Address;
+    hotWallet: Address;  // backend hot wallet, only one allowed to send PlayRound
     
     paused: Bool;
     emergency: Bool;
@@ -22,10 +23,11 @@ contract DiceGameV2 with Deployable {
     lastResult: Int;
     lastCredit: Int;
     
-    init(owner: Address, depositVault: Address, prizePool: Address) {
+    init(owner: Address, depositVault: Address, prizePool: Address, hotWallet: Address) {
         self.owner = owner;
         self.depositVault = depositVault;
         self.prizePool = prizePool;
+        self.hotWallet = hotWallet;
         self.paused = false;
         self.emergency = false;
         self.minAmount = ton("0.1");
@@ -42,11 +44,12 @@ contract DiceGameV2 with Deployable {
     receive(msg: PlayRound) {
         require(!self.paused, "Game paused");
         require(!self.emergency, "Emergency mode");
+        self.assertHotWallet();  // only backend hot wallet can trigger game
         self.assertDirection(msg.direction);
         require(msg.threshold >= 1 && msg.threshold <= 6, "Invalid threshold");
         require(msg.amount >= self.minAmount, "Amount too small");
         
-        let player = sender();
+        let player = msg.player;  // use player from message, not sender
         
         // Step 1: Deduct from DepositVault
         send(SendParameters{
@@ -60,9 +63,10 @@ contract DiceGameV2 with Deployable {
             }.toCell()
         });
         
-        // Step 2: Generate random roll
+        // Step 2: True on-chain random using native_prepare_random
         native_prepare_random();
-        let roll = (msg.clientNonce % 6) + 1;
+        let seed = randomInt();
+        let roll = (seed % 6) + 1;
         let isWin = self.calcIsWin(msg.direction, msg.threshold, roll);
         
         let amount = msg.amount;
@@ -154,12 +158,21 @@ contract DiceGameV2 with Deployable {
         }
     }
 
+    receive(msg: SetHotWallet) {
+        self.assertOwner();
+        self.hotWallet = msg.newHotWallet;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Helpers
     // ═══════════════════════════════════════════════════════════
 
     fun assertOwner() {
         require(sender() == self.owner, "Not owner");
+    }
+
+    fun assertHotWallet() {
+        require(sender() == self.hotWallet, "Not hot wallet");
     }
 
     fun assertDirection(direction: Int) {
@@ -213,6 +226,7 @@ contract DiceGameV2 with Deployable {
             owner: self.owner,
             depositVault: self.depositVault,
             prizePool: self.prizePool,
+            hotWallet: self.hotWallet,
             paused: self.paused,
             emergency: self.emergency,
             minAmount: self.minAmount
@@ -234,6 +248,7 @@ contract DiceGameV2 with Deployable {
 // ═══════════════════════════════════════════════════════════
 
 message PlayRound {
+    player: Address;  // actual player (sent by backend hot wallet)
     direction: Int;   // 0: <=T, 1: >=T
     threshold: Int;   // 1-6
     amount: Int;
@@ -250,6 +265,10 @@ message SetConfig {
 message SetContracts {
     newDepositVault: Address?;
     newPrizePool: Address?;
+}
+
+message SetHotWallet {
+    newHotWallet: Address;
 }
 
 // Outgoing messages to other contracts
@@ -293,6 +312,7 @@ struct GameConfig {
     owner: Address;
     depositVault: Address;
     prizePool: Address;
+    hotWallet: Address;
     paused: Bool;
     emergency: Bool;
     minAmount: Int;

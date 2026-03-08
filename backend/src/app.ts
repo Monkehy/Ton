@@ -6,6 +6,7 @@ import { referralRoutes } from "./routes/referral.js";
 import { roundsRoutes } from "./routes/rounds.js";
 import { transactionsRoutes } from "./routes/transactions.js";
 import { userRoutes } from "./routes/user.js";
+import { gameRoutes } from "./routes/game.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -24,6 +25,7 @@ export function buildApp() {
   app.register(transactionsRoutes);
   app.register(roundsRoutes);
   app.register(leaderboardRoutes);
+  app.register(gameRoutes);
 
   return app;
 }
