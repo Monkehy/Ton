@@ -19,7 +19,7 @@ function getClient(): TonClient {
 }
 
 // PlayRound op code from compiled contract
-const OP_PLAY_ROUND = 2234641007;
+const OP_PLAY_ROUND = 1984116627;
 
 export function buildPlayRoundBody(
   player: Address,
@@ -29,15 +29,17 @@ export function buildPlayRoundBody(
   clientNonce: number
 ) {
   // Layout from tact_DiceGameV2.ts storePlayRound:
-  // b_0: op(32) + player(addr) + direction(257) + threshold(257) + amount(257)
-  // b_1 (ref): clientNonce(257)
-  const b1 = beginCell().storeInt(BigInt(clientNonce), 257).endCell();
+  // b_0: op(32) + player(addr) + direction(257) + threshold(257)
+  // b_1 (ref): amount(257) + clientNonce(257)
+  const b1 = beginCell()
+    .storeInt(amountNano, 257)
+    .storeInt(BigInt(clientNonce), 257)
+    .endCell();
   return beginCell()
     .storeUint(OP_PLAY_ROUND, 32)
     .storeAddress(player)
     .storeInt(direction, 257)
     .storeInt(threshold, 257)
-    .storeInt(amountNano, 257)
     .storeRef(b1)
     .endCell();
 }
