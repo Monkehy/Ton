@@ -172,6 +172,7 @@ contract DepositVault with Deployable {
 
         let balance = self.getUserBalance(user);
         self.userBalance.set(user, balance + amount);
+        self.hotReserve = self.hotReserve + amount;
 
         emit(BalanceCredited{
             user: user,

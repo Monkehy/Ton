@@ -3,9 +3,8 @@
 
 import "@stdlib/deploy";
 
-fun native_prepare_random() {
-    // Placeholder for random seed preparation
-}
+@name(randomize_lt)
+native native_prepare_random();
 
 contract DiceGameV2 with Deployable {
     owner: Address;
@@ -61,10 +60,10 @@ contract DiceGameV2 with Deployable {
         let credit = 0;
         let resultCode = 0;
 
-        // Step 2: Deduct from DepositVault (fixed gas, not SendRemainingValue)
+        // Step 2: Deduct from DepositVault
         send(SendParameters{
             to: self.depositVault,
-            value: ton("0.02"),
+            value: ton("0.05"),
             mode: SendPayGasSeparately,
             bounce: true,
             body: DeductForPlay{
@@ -79,10 +78,10 @@ contract DiceGameV2 with Deployable {
             credit = (amount * payoutBps) / 10000;
             resultCode = 1;
             
-            // Step 3a: Pay winnings from PrizePool
+            // Step 3a: Pay winnings from PrizePool (needs enough gas for PrizePool→DepositVault hop)
             send(SendParameters{
                 to: self.prizePool,
-                value: ton("0.02"),
+                value: ton("0.05"),
                 mode: SendPayGasSeparately,
                 bounce: true,
                 body: PayWinnings{
@@ -98,7 +97,7 @@ contract DiceGameV2 with Deployable {
                 // Step 3b: Pay rebate from PrizePool
                 send(SendParameters{
                     to: self.prizePool,
-                    value: ton("0.02"),
+                    value: ton("0.05"),
                     mode: SendPayGasSeparately,
                     bounce: true,
                     body: PayRebate{

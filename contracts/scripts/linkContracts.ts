@@ -7,17 +7,16 @@
 
 import { Address, toNano, beginCell, TonClient, WalletContractV4, WalletContractV3R2, WalletContractV5R1, internal, SendMode } from "@ton/ton";
 import { mnemonicToPrivateKey, mnemonicToWalletKey, KeyPair } from "@ton/crypto";
+import { storeSetGameContract } from "../build/DepositVault/tact_DepositVault";
+import { storeSetPrizePool } from "../build/DepositVault/tact_DepositVault";
+import { storeSetDepositVault } from "../build/PrizePool/tact_PrizePool";
 
 // ── 已部署的合约地址 ───────────────────────────────────────────
 const CONTRACTS = {
-  depositVault: "EQArZnxBthm0Y7Qjv5sn1xjb5aJoKgK3EHcfG4fZf-jst2mj",
-  prizePool:    "EQAoaVL6MLPmz0ddoz-6SbKjzJMfNZKmBR4WFj15e9PPcAjv",
-  diceGameV2:   "EQDJ7qjabSbZV-kxMCVvt1OfF2nSZM7UR3K0Yg_AqgE_1RtT",
+  depositVault: "EQBjKDiTdErhtPSMqLeqUkaxrH78F9XgjNgTSHUeED51Rg5J",
+  prizePool:    "EQDHbqGnjMSaSwPEPkjnUfH450W6jN2TDELxhsBOcYPXKEd6",
+  diceGameV2:   "EQDpw7gljveYDi1TKrEky_CynU0FnDE7HlZs_9CTbh9LRn17",
 };
-
-const OP_SET_GAME_CONTRACT = 2882474885;
-const OP_SET_PRIZE_POOL    = 525905820;  // SetPrizePool for DepositVault
-const OP_SET_DEPOSIT_VAULT = 536588771;  // SetDepositVault for PrizePool
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -139,18 +138,15 @@ async function main() {
   }
 
   const setGameContractBody = beginCell()
-    .storeUint(OP_SET_GAME_CONTRACT, 32)
-    .storeAddress(Address.parse(CONTRACTS.diceGameV2))
+    .store(storeSetGameContract({ $$type: "SetGameContract", newGameContract: Address.parse(CONTRACTS.diceGameV2) }))
     .endCell();
 
   const setPrizePoolBody = beginCell()
-    .storeUint(OP_SET_PRIZE_POOL, 32)
-    .storeAddress(Address.parse(CONTRACTS.prizePool))
+    .store(storeSetPrizePool({ $$type: "SetPrizePool", newPrizePool: Address.parse(CONTRACTS.prizePool) }))
     .endCell();
 
   const setDepositVaultBody = beginCell()
-    .storeUint(OP_SET_DEPOSIT_VAULT, 32)
-    .storeAddress(Address.parse(CONTRACTS.depositVault))
+    .store(storeSetDepositVault({ $$type: "SetDepositVault", newDepositVault: Address.parse(CONTRACTS.depositVault) }))
     .endCell();
 
   // ── [1/4] SetGameContract → DepositVault ─────────────────────

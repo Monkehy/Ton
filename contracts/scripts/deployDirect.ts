@@ -15,10 +15,10 @@ import * as path from "path";
 import * as readline from "readline";
 
 // Import compiled contracts
-import { MultiSigColdWallet } from "../../build/MultiSigColdWallet/tact_MultiSigColdWallet";
-import { PrizePool } from "../../build/PrizePool/tact_PrizePool";
-import { DepositVault } from "../../build/DepositVault/tact_DepositVault";
-import { DiceGameV2 } from "../../build/DiceGameV2/tact_DiceGameV2";
+import { MultiSigColdWallet } from "../build/MultiSigColdWallet/tact_MultiSigColdWallet";
+import { PrizePool, storeFundPrizePool } from "../build/PrizePool/tact_PrizePool";
+import { DepositVault } from "../build/DepositVault/tact_DepositVault";
+import { DiceGameV2 } from "../build/DiceGameV2/tact_DiceGameV2";
 
 // 支持的钱包版本
 type WalletVersion = "v3r2" | "v4r2";
@@ -355,7 +355,9 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   log("\n📦 [2/4] Deploying PrizePool...");
 
-  const prizePool = await PrizePool.fromInit(walletAddress, walletAddress, walletAddress);
+  // PrizePool init 参数加入 depositVault 地址，确保生成新地址
+  const depositVaultAddrForInit = Address.parse("EQArZnxBthm0Y7Qjv5sn1xjb5aJoKgK3EHcfG4fZf-jst2mj");
+  const prizePool = await PrizePool.fromInit(walletAddress, walletAddress, depositVaultAddrForInit);
   const prizePoolAddress = prizePool.address;
   result.prizePool = prizePoolAddress;
 
@@ -390,7 +392,7 @@ async function main() {
       internal({
         to: prizePoolAddress,
         value: toNano(config.initialPrizePoolAmount),
-        body: beginCell().storeUint(0, 32).storeBuffer(Buffer.from("FundPrizePool")).endCell(),
+        body: beginCell().store(storeFundPrizePool({ $$type: "FundPrizePool" })).endCell(),
       }),
     ],
   });
