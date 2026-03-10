@@ -13,7 +13,7 @@ import { storeSetDepositVault } from "../build/PrizePool/tact_PrizePool";
 
 // ── 已部署的合约地址（diceGameV2 填你 deploy:dice-only 输出的新地址）───────────────────────
 const CONTRACTS = {
-  depositVault: "EQArr02g0TWuB_SOdaJXPGnNCTT3Tl4XLBk_LDJH2qw-kvGB",
+  depositVault: "EQB2Nm6IKvvXV7kkmPFQCn1YwE8KCOCxIjOM6suVoM1wnhxX",
   prizePool:    "EQADwHZO5Jc5RVQ3X8URmyyImcC3HzGETsSdKPa-xjHeymnF",
   diceGameV2:   "EQBV2GS_oOmdHsSf0PXK_OcL469KjEiWuU38XBXwmhudkHe5",
 };
@@ -92,8 +92,11 @@ async function main() {
   let matchedName = candidates[0].name;
   console.log("\n🔍 Finding matching wallet version...");
   for (const { name, kp, contract } of candidates) {
-    const addr = contract.address.toString({ bounceable: false, testOnly: true });
-    if (addr === OWNER) {
+    const addr  = contract.address.toString({ bounceable: false, testOnly: true });
+    const addrB = contract.address.toString({ bounceable: true,  testOnly: true });
+    const addrN = contract.address.toString({ bounceable: false, testOnly: false });
+    const addrBN= contract.address.toString({ bounceable: true,  testOnly: false });
+    if ([addr, addrB, addrN, addrBN].includes(OWNER)) {
       selectedKp = kp;
       walletContract = contract;
       matchedName = name;
